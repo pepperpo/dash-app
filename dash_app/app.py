@@ -18,9 +18,9 @@ server = Flask(__name__)
 
 
 app = dash.Dash(name='Bootstrap_docker_app',
-                server=server,
-                static_folder='static',
-                csrf_protect=False)
+                server=server)#,
+                #static_folder='static',
+                #csrf_protect=False)
 
 # Add css, js, container div with id='page-content' and location with id='url'
 app = config_app(app, debug=True)

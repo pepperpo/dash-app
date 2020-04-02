@@ -4,7 +4,7 @@ import dash_core_components as dcc
 
 def config_app(app, **kwargs):
     """Dash app configuration
-    
+
     Parameters
     ----------
     app: Dash app
@@ -22,8 +22,11 @@ def config_app(app, **kwargs):
     if kwargs.get('debug', False):
         app.server.debug = True
 
-    app.config.supress_callback_exceptions = True
+    #app.config.supress_callback_exceptions = True
+    #app.css.config.serve_locally = False
+    #app.scripts.config.serve_locally = False
 
+    '''
     # Append CSS
     app.css.append_css({
         'external_url': 'https://maxcdn.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css'
@@ -36,6 +39,6 @@ def config_app(app, **kwargs):
     app.scripts.append_script({
         'external_url': 'https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js'
     })
+    '''
 
     return app
-    
