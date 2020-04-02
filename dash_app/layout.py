@@ -32,7 +32,7 @@ def make_header():
         className='navbar navbar-expand-md navbar-light bg-light',
         children = [
             # Title on the left
-            html.Span(html.A("Strava Poster",
+            html.Span(html.A("GPviz",
                              href='/',
                              className='navbar-brand'),
                       className='navbar-brand mr-auto w-50'),
@@ -44,22 +44,11 @@ def make_header():
                                className='nav-link lead'
                             ),
                             className = 'nav-item'),
-                    html.Li(html.A('Scatter',
-                               href='/scatter',
-                               className='nav-link lead'
-                            ),
-                            className = 'nav-item'),
-                    html.Li(html.A('Blog',
-                               href='https://sladkovm.github.io/',
-                               className='nav-link lead'
-                            ),
-                            className = 'nav-item'),
-                    html.Li(html.A(
-                                children='Velometria',
-                                href='http://velometria.com',
-                                className = 'nav-link lead'
-                            ),
-                            className = 'nav-pills'),
+                    # html.Li(html.A('Scatter',
+                    #            href='/scatter',
+                    #            className='nav-link lead'
+                    #         ),
+                    #         className = 'nav-item'),
                 ],
                 className = 'nav navbar-nav ml-auto w-100 justify-content-end'
             ),
@@ -79,4 +68,18 @@ def make_main(plot=html.Div()):
         ]
     )
     return rv
+
+
+# def make_main(plot=html.Div()):
+#     """Returns a div with a plot"""
+#     rv = html.Div(
+#         style={'backgroundColor': colors['background']},
+#         children=[
+#             dcc.Graph(
+#                 id='fig',
+#                 figure=plot
+#             )
+#         ]
+#     )
+#     return rv
 

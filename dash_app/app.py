@@ -42,12 +42,14 @@ def routing(pathname):
     """
     app.server.logger.info(pathname)
 
-    if pathname == '/bar':
-        rv = make_main(bar_plot)
-    elif pathname == '/scatter':
-        rv = make_main(scatter_plot)
-    else:
-        rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
+    rv = make_main(bar_plot)
+
+    # if pathname == '/bar':
+    #     rv = make_main(bar_plot)
+    # elif pathname == '/scatter':
+    #     rv = make_main(scatter_plot)
+    # else:
+    #     rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
 
     return rv
 
