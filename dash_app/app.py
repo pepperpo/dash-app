@@ -5,7 +5,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 from config import config_app
 from layout import app_layout, make_header, make_main
-from plots import bar_plot, scatter_plot
+from plots import bar_plot, scatter_plot, cnt_plot
 
 import sys
 # import logging
@@ -42,7 +42,7 @@ def routing(pathname):
     """
     app.server.logger.info(pathname)
 
-    rv = make_main(bar_plot)
+    rv = make_main(cnt_plot)
 
     # if pathname == '/bar':
     #     rv = make_main(bar_plot)

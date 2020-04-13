@@ -39,11 +39,11 @@ def make_header():
             # Links on the right
             html.Ul(
                 children = [
-                    html.Li(html.A('Bar',
-                               href='/bar',
-                               className='nav-link lead'
-                            ),
-                            className = 'nav-item'),
+                    # html.Li(html.A('Bar',
+                    #            href='/bar',
+                    #            className='nav-link lead'
+                    #         ),
+                    #         className = 'nav-item'),
                     # html.Li(html.A('Scatter',
                     #            href='/scatter',
                     #            className='nav-link lead'
@@ -56,11 +56,41 @@ def make_header():
     return rv
 
 
+def make_control_panel():
+    rv_runs = html.Div(
+        style={'backgroundColor': colors['background'],'width': '10%', 'display': 'inline-block', 'vertical-align': 'middle'},
+        children=[
+            html.Label("Runs"),
+            dcc.Input(id="runA", type="number", placeholder="Run A"),
+            dcc.Input(id="runB", type="number", placeholder="Run B"),
+            ])
+
+    rv_gp = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '20%', 'display': 'inline-block','margin-left':'5%',
+               'vertical-align': 'middle'},
+        children=[
+            html.Label("Gaussian Process Params"),
+            dcc.Input(id="ls_input", type="number", placeholder="Lengthscales"),
+            dcc.Input(id="signa_input", type="number", placeholder="Sigma"),
+        ])
+
+    """Returns a div"""
+    rv = html.Div(
+        style={'backgroundColor': colors['background']},
+        children=[
+            rv_runs,
+            rv_gp
+            ]
+    )
+    return rv
+
+
 def make_main(plot=html.Div()):
     """Returns a div with a plot"""
     rv = html.Div(
         style={'backgroundColor': colors['background']},
         children=[
+            make_control_panel(),
             dcc.Graph(
                 id='fig',
                 figure=plot
