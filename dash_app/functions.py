@@ -1,0 +1,148 @@
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import json
+
+def generate_plot(dash_session,aggr_in,col_in,norm_in,log_in,region_in,prov_in):
+
+    fig = go.Figure()
+    fig.update_layout( margin={'t': 0})
+
+    if dash_session:
+
+        dash_session = json.loads(dash_session)
+
+        options = dash_session['options_nation']
+        if not col_in:
+            col_in = options
+
+        fig_data = []
+        annot_flag = [False]
+
+        if not region_in and not prov_in:
+            df = pd.DataFrame(dash_session['nation'])
+            plot_df(df, fig_data,annot_flag,aggr_in,col_in,norm_in,log_in)
+
+        if region_in:
+            for cur_region in region_in:
+                if cur_region == '{}[all regions]'.format(dash_session['nation_str']):
+                    df = pd.DataFrame(dash_session['nation'])
+                else:
+                    df = pd.DataFrame(dash_session['region'])
+                    cur_idx = df['denominazione_regione']==cur_region
+                    df = df.loc[cur_idx]
+                plot_df(df, fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix='({})'.format(cur_region))
+
+        if prov_in:
+            for cur_prov in prov_in:
+                df = pd.DataFrame(dash_session['province'])
+                cur_idx = df['denominazione_provincia'] == cur_prov
+                df = df.loc[cur_idx]
+                cur_col = [value for value in col_in if value in dash_session['options_province']]
+                plot_df(df, fig_data, annot_flag, aggr_in, cur_col, norm_in, log_in, suffix='({})'.format(cur_prov))
+
+
+
+        if annot_flag[0] is True:
+            annotations = [
+                dict(
+                    x=0.5,
+                    y=0.1,
+                    showarrow=False,
+                    text="Some variables were deleted because log of a negative value",
+                    xref="paper",
+                    yref="paper"
+                )]
+        else:
+            annotations = []
+
+        fig = go.Figure(data=fig_data)
+
+        # Change the bar mode
+        #fig.update_layout(barmode='relative',hovermode='x unified')
+        fig.update_layout(hovermode='x unified',yaxis_type=log_in,annotations=annotations,margin={'t': 0})
+
+    return fig
+
+
+def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
+    date = pd.to_datetime(df['data'])
+
+    if norm_in:
+        if aggr_in == 'tot':
+            denom = df[norm_in]
+        else:
+            denom = df[norm_in].diff()  # np.concatenate([[1], df[norm_in].diff()])
+    else:
+        denom = 1.
+
+
+    for cur_col in col_in:
+        if aggr_in == 'tot':
+            numer = df[cur_col]
+        else:
+            numer = df[cur_col].diff()  # np.concatenate([[0],df[cur_col].diff()])
+
+        # fig_data.append(go.Bar(name=cur_col, x=date, y=numer/denom))
+
+        y_val = numer / denom
+
+        if not (np.any(y_val < 0) and log_in == 'log'):
+            fig_data.append(go.Scatter(name='{}{}'.format(cur_col,suffix), x=date, y=y_val, mode='lines+markers'))
+        else:
+            annot_flag[0] = True
+
+
+
+def load_data(country_in):
+
+    from constants import translation_dict
+
+    region_list = []
+    province_list = []
+
+    if country_in == 'Italy':
+
+        cur_tr = translation_dict[country_in]
+
+        df_nation = pd.read_csv(
+            'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv',
+            header=0)
+        df_region = pd.read_csv(
+            'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv',
+            header=0)
+        df_province = pd.read_csv(
+            'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-province/dpc-covid19-ita-province.csv',
+            header=0)
+
+        options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
+        options_province_it = ['totale_casi']
+
+        #apply translations
+        options_nation_region = [cur_tr[cur_var] for cur_var in options_nation_region_it]
+        options_province = [cur_tr[cur_var] for cur_var in options_province_it]
+        df_nation.rename(columns=cur_tr,inplace=True)
+        df_region.rename(columns=cur_tr,inplace=True)
+        df_province.rename(columns=cur_tr,inplace=True)
+
+        data = {'nation':df_nation.to_dict(),
+                'options_nation':options_nation_region,
+                'region': df_region.to_dict(),
+                'options_region': options_nation_region,
+                'province': df_province.to_dict(),
+                'options_province': options_province,
+                'nation_str': country_in,
+                }
+
+        region_list = ['{}[all regions]'.format(country_in)] + sorted(df_region['denominazione_regione'].unique().tolist())
+        province_list = sorted(df_province['denominazione_provincia'].unique().tolist())
+
+        province_list.remove('In fase di definizione/aggiornamento')
+
+    dash_session = json.dumps(data)
+
+    return dash_session,region_list,province_list
+
+
+if __name__ == "__main__":
+    generate_plot('Italy')
