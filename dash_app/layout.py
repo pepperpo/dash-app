@@ -2,6 +2,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from style import colors
+import plotly.graph_objects as go
 
 
 def app_layout(header=None, main=None, footer=None):
@@ -68,7 +69,6 @@ def make_control_panel():
                 placeholder="Country",
                 options=[{'label': country, 'value': country} for country in countries],
                 clearable=False,
-                value=countries[0]
             ),
 
         ])
@@ -133,6 +133,7 @@ def make_control_panel():
             dcc.Dropdown(
                 id='columns_dropdown',
                 placeholder="Select options to plot... (leave empty to select all)",
+                value=['deaths','total_positive'],
                 multi=True,
             ),
         ])
@@ -155,8 +156,7 @@ def make_control_panel():
             dbc.Spinner(
                 id="loading-submit",
                 children=[html.Div([html.Div(id="loading-submit-cnt1", style={'display': 'none'})]),
-                          html.Div([html.Div(id="loading-submit-cnt2", style={'display': 'none'})]),
-                          html.Div([html.Div(id="loading-submit-cnt3", style={'display': 'none'})])],
+                          html.Div([html.Div(id="loading-submit-cnt2", style={'display': 'none'})])],
                 size="sm",
                 color="primary",
             ),
@@ -182,6 +182,13 @@ def make_control_panel():
             radio_log_div
         ])
 
+    refresh_div = html.Div(
+        style={'backgroundColor': colors['background'],
+               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '-10px','margin-bottom':'10px'},
+        children=[
+            html.Button('Refresh graph', id='btn_refresh', style={'background': '#008B8B', 'color': 'white','borderRadius': '5px'})
+        ])
+
     '''
     radio_cont_div = html.Div(
         style={'backgroundColor': colors['background'],
@@ -203,6 +210,7 @@ def make_control_panel():
             province_drp_div,
             columns_div,
             denom_div,
+            refresh_div,
             ]
     )
     return rv
@@ -216,7 +224,7 @@ def make_main(plot=html.Div()):
             make_control_panel(),
             dcc.Graph(
                 id='bar_graph',
-                #figure=plot,
+                figure=go.Figure({'layout':{'margin':{'t': 0}}})
             )
         ]
     )

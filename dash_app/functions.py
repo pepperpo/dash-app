@@ -40,8 +40,7 @@ def generate_plot(dash_session,aggr_in,col_in,norm_in,log_in,region_in,prov_in):
             cur_col = [value for value in col_in if value in dash_session['options_province']]
             plot_df(df, fig_data, annot_flag, aggr_in, cur_col, norm_in, log_in, suffix='({})'.format(cur_prov))
 
-    print('Time elapsed {}'.format(time.time()-t1))
-
+    #print('Time elapsed {}'.format(time.time()-t1))
 
     if annot_flag[0] is True:
         annotations = [
@@ -96,23 +95,36 @@ def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
 
 def load_data(country_in,all_data_dict):
 
-    from constants import translation_dict
+    from constants import translation_dict,urls
+    import requests
 
-    if not all_data_dict:
+    url_nation = urls[country_in]['Nation']
+    response = requests.head(url_nation, allow_redirects=True)
+    size = response.headers.get('content-length', 0)
+
+    reload_flag = False
+    if all_data_dict:
+        prev_size = all_data_dict[country_in]['file_size']
+        if response.status_code == 200 and size > prev_size:
+            reload_flag = True
+        #else:
+        #    print("File hasn't changed")
+
+    if not all_data_dict or reload_flag:
+
         if country_in == 'Italy':
-
-            print('downloading')
+            #print('downloading')
 
             cur_tr = translation_dict[country_in]
 
             df_nation = pd.read_csv(
-                'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv',
+                urls[country_in]['Nation'],
                 header=0)
             df_region = pd.read_csv(
-                'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv',
+                urls[country_in]['Region'],
                 header=0)
             df_province = pd.read_csv(
-                'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-province/dpc-covid19-ita-province.csv',
+                urls[country_in]['Province'],
                 header=0)
 
             options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
@@ -132,6 +144,7 @@ def load_data(country_in,all_data_dict):
                     'province': df_province,
                     'options_province': options_province,
                     'nation_str': country_in,
+                    'file_size':size,
                     }
 
             all_data_dict[country_in] = data

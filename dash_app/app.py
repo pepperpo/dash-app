@@ -34,8 +34,11 @@ app.layout = app_layout(header=make_header(),main=make_main(),footer=make_footer
 
 all_data_dict = {}
 
-@app.callback(Output('page-main', 'children'), [Input('url', 'pathname')])
-def routing(pathname):
+@app.callback([Output('page-main', 'children'),
+               Output('country_dropdown', 'value')],
+              [Input('url', 'pathname')],
+              [State('country_dropdown', 'options')])
+def routing(pathname,country_opt):
     """Very basic router
 
     This callback function will read the current url
@@ -56,7 +59,7 @@ def routing(pathname):
     # else:
     #     rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
 
-    return rv
+    return rv,country_opt[0]['value']
 
 # @server.route("/")
 # def MyDashApp():
@@ -64,24 +67,24 @@ def routing(pathname):
 #     print('HERE')
 #     return app.index()
 
-
 @app.callback([Output('bar_graph', 'figure'),
                Output('loading-submit-cnt1','children')],
-              [Input('aggragation_radio', 'value'),
-               Input('columns_dropdown', 'value'),
-               Input('norm_dropdown', 'value'),
-               Input('log_radio', 'value'),
-               Input('region_dropdown', 'value'),
-               Input('province_dropdown', 'value'),
+              [Input('btn_refresh', 'n_clicks'),
                Input('loading-submit-cnt2', 'children')],
-              [State('country_dropdown','value')])
-def update_plot(aggr_in, col_in, norm_in, log_in, region_in, prov_in, update_done, country_in):
-    print(aggr_in, col_in, norm_in, log_in, region_in, prov_in, update_done)
-    if not update_done:
+              [State('aggragation_radio', 'value'),
+               State('columns_dropdown', 'value'),
+               State('norm_dropdown', 'value'),
+               State('log_radio', 'value'),
+               State('region_dropdown', 'value'),
+               State('province_dropdown', 'value'),
+               State('country_dropdown','value')])
+def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, region_in, prov_in,country_in):
+    if not update_done or n_clicks==0:
         raise PreventUpdate
-
     rv = generate_plot(all_data_dict[country_in],aggr_in,col_in,norm_in,log_in,region_in,prov_in)
     return rv,'done'
+
+
 
 @app.callback([Output('region_dropdown', 'options'),
                Output('province_dropdown','options'),
@@ -100,19 +103,19 @@ def load_data_callback(country_in):
 
 @app.callback([Output('columns_dropdown', 'options'),
                Output('norm_dropdown', 'options'),
-               Output('loading-submit-cnt3','children'),
                Output('columns_dropdown', 'value'),
                Output('norm_dropdown', 'value'),
                ],
                [Input('region_dropdown', 'value'),
-                Input('province_dropdown', 'value')],
+                Input('province_dropdown', 'value'),
+                Input('loading-submit-cnt2', 'children')],
               [State('columns_dropdown', 'value'),
                State('norm_dropdown', 'value'),
                State('country_dropdown','value')]
               )
-def update_col_options(region_in,province_in,col_st,norm_st,country_in):
+def update_col_options(region_in,province_in,update_done,col_st,norm_st,country_in):
 
-    if not (region_in or province_in):
+    if not update_done:
         raise PreventUpdate
 
     col_drp = []
@@ -138,7 +141,7 @@ def update_col_options(region_in,province_in,col_st,norm_st,country_in):
     if norm_st:
         new_norm_val = [value for value in options if value in norm_st]
 
-    return col_drp,norm_drp,'done',new_col_val,new_norm_val
+    return col_drp,norm_drp,new_col_val,new_norm_val
 
 
 
