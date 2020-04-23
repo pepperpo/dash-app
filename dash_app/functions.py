@@ -24,7 +24,7 @@ def generate_plot(dash_session,aggr_in,col_in,norm_in,log_in,region_in,prov_in):
 
     if region_in:
         for cur_region in region_in:
-            if cur_region == '{}[all regions]'.format(dash_session['nation_str']):
+            if cur_region == '{}'.format(dash_session['nation_str']):
                 df = pd.DataFrame(dash_session['nation'])
             else:
                 df = pd.DataFrame(dash_session['region'])
@@ -98,19 +98,25 @@ def load_data(country_in,all_data_dict):
     from constants import translation_dict,urls
     import requests
 
+    online = True
+
     url_nation = urls[country_in]['Nation']
-    response = requests.head(url_nation, allow_redirects=True)
-    size = response.headers.get('content-length', 0)
+    if online:
+        response = requests.head(url_nation, allow_redirects=True)
+        size = response.headers.get('content-length', 0)
+        status_code = response.status_code
+    else:
+        status_code = 100
 
     reload_flag = False
     if all_data_dict:
         prev_size = all_data_dict[country_in]['file_size']
-        if response.status_code == 200 and size > prev_size:
+        if size > prev_size:
             reload_flag = True
         #else:
         #    print("File hasn't changed")
 
-    if not all_data_dict or reload_flag:
+    if (not all_data_dict or reload_flag) and status_code == 200 :
 
         if country_in == 'Italy':
             #print('downloading')
@@ -157,11 +163,19 @@ def data2dropdown(country_in,dict_in):
     province_list = []
     cur_dict = dict_in[country_in]
     if country_in=='Italy':
-        region_list = ['{}[all regions]'.format(country_in)] + sorted(cur_dict['region']['denominazione_regione'].unique().tolist())
+        region_list = [country_in] + sorted(cur_dict['region']['denominazione_regione'].unique().tolist())
         province_list = sorted(cur_dict['province']['denominazione_provincia'].unique().tolist())
         province_list.remove('In fase di definizione/aggiornamento')
 
-        region_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in region_list]
+        region_drp = []
+        for cur_i,cur_opt in enumerate(region_list):
+            if cur_i==0:
+                cur_label = cur_opt + ' [aggregate]'
+            else:
+                cur_label = cur_opt
+            region_drp.append({'label': cur_label, 'value': cur_opt})
+
+        #region_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in region_list]
         province_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in province_list]
 
     return region_drp, province_drp

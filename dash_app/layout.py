@@ -62,7 +62,7 @@ def make_header():
 def make_control_panel():
     from constants import countries
     country_div = html.Div(
-        style={'backgroundColor': colors['background'],'width': '10%', 'display': 'inline-block', 'vertical-align': 'middle'},
+        style={'backgroundColor': colors['background'],'width': '25%', 'display': 'inline-block', 'vertical-align': 'middle'},
         children=[
             dcc.Dropdown(
                 id='country_dropdown',
@@ -76,7 +76,7 @@ def make_control_panel():
 
     radio_div = html.Div(
         style={'backgroundColor': colors['background'],
-               'display': 'inline-block','float':'right','margin-top':'10px','margin-right':'10px'},
+               'display': 'inline-block','float':'left','margin-left':'10px'},
         children=[ dcc.RadioItems(
                 id='aggragation_radio',
                 options=[
@@ -92,7 +92,7 @@ def make_control_panel():
 
     radio_log_div = html.Div(
         style={'backgroundColor': colors['background'],
-               'display': 'inline-block', 'float': 'right', 'margin-top': '10px','margin-right':'50px'},
+               'display': 'inline-block', 'float': 'left','margin-left':'20px'},
         children=[dcc.RadioItems(
             id='log_radio',
             options=[
@@ -112,7 +112,7 @@ def make_control_panel():
         children=[
             dcc.Dropdown(
                 id='region_dropdown',
-                placeholder="Region (leave empty for national data; it can be selected independently of province)",
+                placeholder="Country / Region / State / Prefecture",
                 multi=True,
             ),
         ])
@@ -122,17 +122,54 @@ def make_control_panel():
         children=[
             dcc.Dropdown(
                 id='province_dropdown',
-                placeholder="Province (leave empty for national data; it can be selected independently of region)",
+                placeholder="Province / County",
                 multi=True,
             ),
         ])
 
+
+    subregions_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '47%','float':'left'},
+        children=[
+            region_drp_div,
+            province_drp_div
+        ])
+
+    add_btn_div = html.Div(
+        className='button-subregions',
+        style={'backgroundColor': colors['background'],'width': '4%','height':'100%'},
+        children=[
+            html.Button('>', className='mybutton', id='btn_add',
+                        style={'border': 'none', 'color': 'white', 'borderRadius': '5px','height':'100%','width': '100%'})
+        ])
+
+    sel_subreg_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '47%','float':'left','margin-left':'6%'},
+        children=[
+            dcc.Dropdown(
+                id='sel_reg_dropdown',
+                placeholder="Only items in this box are plotted",
+                multi=True,
+                style={'min-height': '75px'}
+            ),
+        ])
+
+    regionsel_div = html.Div(
+        className='container-subregions',
+        style={'backgroundColor': colors['background'], 'width': '100%','float':'left'},
+        children=[
+            subregions_div,
+            add_btn_div,
+            sel_subreg_div
+        ])
+
+
     columns_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '100%','margin-top': '5px'},
+        style={'backgroundColor': colors['background'], 'width': '100%','float':'left'},
         children=[
             dcc.Dropdown(
                 id='columns_dropdown',
-                placeholder="Select options to plot... (leave empty to select all)",
+                placeholder="Select variables to plot",
                 value=['deaths','total_positive'],
                 multi=True,
             ),
@@ -140,11 +177,11 @@ def make_control_panel():
 
     norm_div = html.Div(
         style={'backgroundColor': colors['background'],
-               'vertical-align': 'middle', 'display': 'inline-block', 'width': '20%'},
+               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%','margin-top':'5px'},
         children=[
             dcc.Dropdown(
                 id='norm_dropdown',
-                placeholder="Denominator",
+                placeholder="Denominator (use to plot percent)",
             ),
         ])
 
@@ -171,34 +208,66 @@ def make_control_panel():
             loading_div,
         ])
 
-    denom_div = html.Div(
+    radio_all_div = html.Div(
         style={'backgroundColor': colors['background'],
-               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%','margin-top':'5px'},
+               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%','margin-top':'15px'},
         children=[
-            norm_div,
-            html.Div(children="(use Denominator to plot a percentage with respect to one of the variables)",
-                     style={'vertical-align': 'middle', 'display': 'inline-block','margin-left':'5px'}),
             radio_div,
             radio_log_div
         ])
 
-    refresh_div = html.Div(
+    health_div = html.Div(
         style={'backgroundColor': colors['background'],
-               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '-10px','margin-bottom':'10px'},
+               'vertical-align': 'middle', 'float':'left', 'width': '38%','borderRadius': '5px','border':'1px solid gray','padding':'5px','padding-top':'0px'},
         children=[
-            html.Button('Refresh graph', id='btn_refresh', style={'background': '#008B8B', 'color': 'white','borderRadius': '5px'})
+            html.Div(children=['Health stats'],style={'float':'left','margin-top':'-14px','background':'white','margin-bottom':'5px','padding-left':'5px','padding-right':'5px','padding-top':'0px','padding-bottom':'0px'}),
+            columns_div,
+            norm_div,
+            radio_all_div
         ])
 
-    '''
-    radio_cont_div = html.Div(
-        style={'backgroundColor': colors['background'],
-               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '5px'},
+
+    gov_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '30%', 'float': 'left', 'margin-left': '1%'},
         children=[
-            radio_div,
-            html.Div(children="(select Variation to show the day-to-day variation, else Cumulative)",
-                     style={'vertical-align': 'middle', 'display': 'inline-block', 'margin-left': '5px'}),
+            dcc.Dropdown(
+                id='gov_dropdown',
+                placeholder="Government response",
+                multi=True,
+                style={'min-height': '160px'}
+            ),
         ])
-    '''
+
+    mob_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '30%', 'float': 'left', 'margin-left': '1%'},
+        children=[
+            dcc.Dropdown(
+                id='mob_dropdown',
+                placeholder="Mobility (Google/Apple)",
+                multi=True,
+                style={'min-height': '160px'}
+            ),
+        ])
+
+
+
+    var_sel_div = html.Div(
+        style={'backgroundColor': colors['background'],
+               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '15px'},
+        children=[
+            health_div,
+            gov_div,
+            mob_div
+        ])
+
+
+    refresh_btn_div = html.Div(
+        style={'backgroundColor': colors['background'],
+               'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '5px','margin-bottom':'10px'},
+        children=[
+            html.Button('Refresh graph', className='mybutton', id='btn_refresh', style={'border': 'none', 'color': 'white','borderRadius': '5px','float':'left'}),
+            html.Div(children=['(messages and errors below the graph)'],style={'float':'left','margin-left':'10px'})
+        ])
 
 
     """Returns a div"""
@@ -206,11 +275,9 @@ def make_control_panel():
         style={'backgroundColor': colors['background']},
         children=[
             controls_div,
-            region_drp_div,
-            province_drp_div,
-            columns_div,
-            denom_div,
-            refresh_div,
+            regionsel_div,
+            var_sel_div,
+            refresh_btn_div,
             ]
     )
     return rv
@@ -224,7 +291,16 @@ def make_main(plot=html.Div()):
             make_control_panel(),
             dcc.Graph(
                 id='bar_graph',
-                figure=go.Figure({'layout':{'margin':{'t': 0}}})
+                figure=go.Figure({'layout':{'margin':{'t': 0}}})),
+
+            html.Div(
+                style={'background':'#DCDCDC','border-top-left-radius':'5px','border-top-right-radius':'5px','padding-left':'5px'},
+                children=['Messages and errors:']
+            ),
+            html.Div(
+                id='messages',
+                style={'background': '#F8F8F8','min-height':'50px','border-bottom-left-radius':'5px','border-bottom-right-radius':'5px','padding-left':'5px'},
+                children=['']
             )
         ]
     )
@@ -234,9 +310,9 @@ def make_main(plot=html.Div()):
 def make_footer():
     """Returns a div with a plot"""
     rv = html.Div(
-        style={'backgroundColor': colors['background']},
+        style={'backgroundColor': colors['background'],'margin-top':'20px'},
         children=[
-            html.P('Data source - Notes:'),
+            'Data source - Notes:',
             html.P(['Italy: ',
                     html.A('https://github.com/pcm-dpc/COVID-19', href='https://github.com/pcm-dpc/COVID-19', target="_blank"),
                     ' - Notes: data of Provinces only contain total_cases'])

@@ -1,0 +1,16 @@
+.container-subregions{
+  position: relative;
+}
+.button-subregions{
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mybutton{
+    background:#008B8B;
+    }
+.mybutton:hover, .mybutton:active{
+    background:   #A9A9A9;
+    outline:none;}
+

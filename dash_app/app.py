@@ -75,12 +75,17 @@ def routing(pathname,country_opt):
                State('columns_dropdown', 'value'),
                State('norm_dropdown', 'value'),
                State('log_radio', 'value'),
-               State('region_dropdown', 'value'),
-               State('province_dropdown', 'value'),
-               State('country_dropdown','value')])
-def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, region_in, prov_in,country_in):
-    if not update_done or n_clicks==0:
+               State('sel_reg_dropdown', 'value'),
+               State('country_dropdown', 'value')])
+def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, sel_reg_dropdown,country_in):
+    if not update_done or n_clicks==0 or not sel_reg_dropdown:
         raise PreventUpdate
+
+    print()
+
+    region_in = [cur_item.replace('R_','') for cur_item in sel_reg_dropdown if 'R_' in cur_item]
+    prov_in = [cur_item.replace('P_','') for cur_item in sel_reg_dropdown if 'P_' in cur_item]
+
     rv = generate_plot(all_data_dict[country_in],aggr_in,col_in,norm_in,log_in,region_in,prov_in)
     return rv,'done'
 
@@ -96,7 +101,12 @@ def load_data_callback(country_in):
         raise PreventUpdate
 
     load_data(country_in,all_data_dict)
+
+    if country_in not in all_data_dict:
+        raise PreventUpdate
+
     region_drp, province_drp = data2dropdown(country_in, all_data_dict)
+
     return region_drp, province_drp, 'done'
 
 
@@ -106,16 +116,14 @@ def load_data_callback(country_in):
                Output('columns_dropdown', 'value'),
                Output('norm_dropdown', 'value'),
                ],
-               [Input('region_dropdown', 'value'),
-                Input('province_dropdown', 'value'),
-                Input('loading-submit-cnt2', 'children')],
+               [Input('sel_reg_dropdown', 'value')],
               [State('columns_dropdown', 'value'),
                State('norm_dropdown', 'value'),
                State('country_dropdown','value')]
               )
-def update_col_options(region_in,province_in,update_done,col_st,norm_st,country_in):
+def update_col_options(sel_reg_dropdown,col_st,norm_st,country_in):
 
-    if not update_done:
+    if not sel_reg_dropdown:
         raise PreventUpdate
 
     col_drp = []
@@ -124,6 +132,9 @@ def update_col_options(region_in,province_in,update_done,col_st,norm_st,country_
     new_norm_val = None
 
     cur_dict = all_data_dict[country_in]
+
+    province_in = any("P_" in s for s in sel_reg_dropdown)
+    region_in = any("R_" in s for s in sel_reg_dropdown)
 
     if province_in and not region_in:
         options = cur_dict['options_province']
@@ -142,6 +153,33 @@ def update_col_options(region_in,province_in,update_done,col_st,norm_st,country_
         new_norm_val = [value for value in options if value in norm_st]
 
     return col_drp,norm_drp,new_col_val,new_norm_val
+
+
+
+@app.callback([Output('sel_reg_dropdown', 'options'),
+               Output('sel_reg_dropdown','value')],
+               [Input('btn_add', 'n_clicks')],
+               [State('region_dropdown', 'value'),
+                State('province_dropdown', 'value'),
+                State('sel_reg_dropdown', 'value')
+                ])
+def add_region(n_clicks,region_st,prov_st,val_st):
+
+    if n_clicks==0 or (not region_st and not prov_st):
+        raise PreventUpdate
+
+    if not val_st:
+        val_st = []
+
+    opt_st = [{'label':cur_item.replace('P_','').replace('R_',''),'value':cur_item} for cur_item in val_st]
+    if region_st:
+        opt_st.extend([{'label':cur_item,'value':'R_{}'.format(cur_item)} for cur_item in region_st if 'R_{}'.format(cur_item) not in val_st])
+    if prov_st:
+        opt_st.extend([{'label':cur_item,'value':'P_{}'.format(cur_item)} for cur_item in prov_st if 'P_{}'.format(cur_item) not in val_st])
+
+    vals = [cur_item['value'] for cur_item in opt_st]
+
+    return opt_st, vals
 
 
 
