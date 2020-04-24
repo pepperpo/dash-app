@@ -7,8 +7,17 @@ from dash.dependencies import Input, Output, State
 from config import config_app
 from layout import app_layout, make_header, make_main,make_footer
 #from plots import bar_plot, scatter_plot, cnt_plot
-from functions import generate_plot,load_data,data2dropdown
+from functions import generate_plot,load_data,data2dropdown,save_data
 import json
+
+from constants import countries
+import urllib
+
+from concurrent.futures import ThreadPoolExecutor
+from sys import platform
+import os
+import time
+
 
 import sys
 # import logging
@@ -32,7 +41,29 @@ app = config_app(app, debug=debug_flag)
 # Content of each div is a function input
 app.layout = app_layout(header=make_header(),main=make_main(),footer=make_footer())
 
+
+# Start new thread to check if files changed and save them
+if platform == "darwin":
+    data_dir = os.path.join('..','..','..','Data','COVID-MAC')
+else:
+    data_dir = os.path.normpath("/var/lib/dash/data")
+
+
 all_data_dict = {}
+filesize_dict = {}
+# number of seconds between re-calculating the data
+UPDADE_INTERVAL = 10#600
+def get_new_data_every(period=UPDADE_INTERVAL):
+    """Update the data every 'period' seconds"""
+    while True:
+        save_data(data_dir, filesize_dict)
+        for cur_country in countries:
+            load_data(cur_country, all_data_dict,filesize_dict)
+        time.sleep(period)
+# Run the function in another thread
+executor = ThreadPoolExecutor(max_workers=1)
+executor.submit(get_new_data_every)
+
 
 @app.callback([Output('page-main', 'children'),
                Output('country_dropdown', 'value')],
@@ -81,8 +112,6 @@ def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, sel_reg_d
     if not update_done or n_clicks==0 or not sel_reg_dropdown:
         raise PreventUpdate
 
-    print()
-
     region_in = [cur_item.replace('R_','') for cur_item in sel_reg_dropdown if 'R_' in cur_item]
     prov_in = [cur_item.replace('P_','') for cur_item in sel_reg_dropdown if 'P_' in cur_item]
 
@@ -99,8 +128,6 @@ def load_data_callback(country_in):
 
     if not country_in:
         raise PreventUpdate
-
-    load_data(country_in,all_data_dict)
 
     if country_in not in all_data_dict:
         raise PreventUpdate

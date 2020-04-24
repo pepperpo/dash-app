@@ -232,7 +232,7 @@ def make_control_panel():
         children=[
             dcc.Dropdown(
                 id='gov_dropdown',
-                placeholder="Government response",
+                placeholder="Government response (Oxford Univ.)",
                 multi=True,
                 style={'min-height': '160px'}
             ),

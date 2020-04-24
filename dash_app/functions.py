@@ -93,44 +93,27 @@ def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
 
 
 
-def load_data(country_in,all_data_dict):
+def load_data(country_in,all_data_dict,filesize_dict):
 
-    from constants import translation_dict,urls
-    import requests
+    from constants import translation_dict
 
-    online = True
+    if country_in == 'Italy':
+        fs_key = '{}_Nation'.format(country_in)
+        fs_key_region = '{}_Region'.format(country_in)
+        fs_key_province = '{}_Province'.format(country_in)
 
-    url_nation = urls[country_in]['Nation']
-    if online:
-        response = requests.head(url_nation, allow_redirects=True)
-        size = response.headers.get('content-length', 0)
-        status_code = response.status_code
-    else:
-        status_code = 100
-
-    reload_flag = False
-    if all_data_dict:
-        prev_size = all_data_dict[country_in]['file_size']
-        if size > prev_size:
-            reload_flag = True
-        #else:
-        #    print("File hasn't changed")
-
-    if (not all_data_dict or reload_flag) and status_code == 200 :
-
-        if country_in == 'Italy':
-            #print('downloading')
+        if filesize_dict[fs_key]['is_new'] or not all_data_dict:
 
             cur_tr = translation_dict[country_in]
 
             df_nation = pd.read_csv(
-                urls[country_in]['Nation'],
+                filesize_dict[fs_key]['f_path'],
                 header=0)
             df_region = pd.read_csv(
-                urls[country_in]['Region'],
+                filesize_dict[fs_key_region]['f_path'],
                 header=0)
             df_province = pd.read_csv(
-                urls[country_in]['Province'],
+                filesize_dict[fs_key_province]['f_path'],
                 header=0)
 
             options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
@@ -149,13 +132,51 @@ def load_data(country_in,all_data_dict):
                     'options_region': options_nation_region,
                     'province': df_province,
                     'options_province': options_province,
-                    'nation_str': country_in,
-                    'file_size':size,
+                    'nation_str': country_in
                     }
 
             all_data_dict[country_in] = data
+            filesize_dict[fs_key]['is_new'] = False
 
+def save_data(data_dir,filesize_dict):
+    from constants import urls
+    import requests
+    import os
+    import json
+    from urllib.parse import urlparse
 
+    for key1, value1 in urls.items():
+        for key2, value2 in value1.items():
+
+            if key2=='Apple':
+                #https://towardsdatascience.com/empowering-apple-mobility-trends-reports-with-bigquery-and-data-studio-1b188ab1c612
+                response = requests.head(value2, allow_redirects=True)
+                if response.status_code==200:
+                    r_apple = requests.get(value2)
+                    d_apple = json.loads(r_apple.text)
+                    url_name = 'https://covid19-static.cdn-apple.com{}{}'.format(d_apple['basePath'],d_apple['regions']['en-us']['csvPath'])
+                else:
+                    url_name = None
+            else:
+                url_name = value2
+
+            if url_name:
+                fname = '{}_{}'.format(key1,key2)
+                response = requests.head(url_name, allow_redirects=True)
+                size = response.headers.get('content-length', 0)
+                status_code = response.status_code
+
+                #print(key2,status_code,size)
+                url_path = urlparse(url_name).path
+                extension = os.path.splitext(url_path)[1]
+                file_path = os.path.join(data_dir, fname + extension)
+
+                reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
+
+                if status_code==200 and reload_flag:
+                    myFile = requests.get(url_name)
+                    open(file_path, 'wb').write(myFile.content)
+                    filesize_dict[fname]={'size':size,'is_new':True,'f_path':file_path}
 
 
 def data2dropdown(country_in,dict_in):

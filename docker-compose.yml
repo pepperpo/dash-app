@@ -9,6 +9,8 @@ services:
     ports:
       - "8000:8000"
     command: gunicorn -w 1 -b :8000 app:server
+    volumes:
+      - ~/Documents/Data/COVID-DASH:/var/lib/dash/data
 
 
   nginx:
