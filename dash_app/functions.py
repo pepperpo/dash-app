@@ -93,18 +93,18 @@ def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
 
 
 
-def load_data(country_in,all_data_dict,filesize_dict):
+def load_data(repo_in,all_data_dict,filesize_dict):
 
     from constants import translation_dict
 
-    if country_in == 'Italy':
-        fs_key = '{}_Nation'.format(country_in)
-        fs_key_region = '{}_Region'.format(country_in)
-        fs_key_province = '{}_Province'.format(country_in)
+    if repo_in == 'Italy':
+        fs_key = '{}_Nation'.format(repo_in)
+        fs_key_region = '{}_Region'.format(repo_in)
+        fs_key_province = '{}_Province'.format(repo_in)
 
         if filesize_dict[fs_key]['is_new'] or not all_data_dict:
 
-            cur_tr = translation_dict[country_in]
+            cur_tr = translation_dict[repo_in]
 
             df_nation = pd.read_csv(
                 filesize_dict[fs_key]['f_path'],
@@ -122,9 +122,9 @@ def load_data(country_in,all_data_dict,filesize_dict):
             #apply translations
             options_nation_region = [cur_tr[cur_var] for cur_var in options_nation_region_it]
             options_province = [cur_tr[cur_var] for cur_var in options_province_it]
-            df_nation.rename(columns=cur_tr,inplace=True)
-            df_region.rename(columns=cur_tr,inplace=True)
-            df_province.rename(columns=cur_tr,inplace=True)
+            df_nation.rename(columns=cur_tr, inplace=True)
+            df_region.rename(columns=cur_tr, inplace=True)
+            df_province.rename(columns=cur_tr, inplace=True)
 
             data = {'nation':df_nation,
                     'options_nation':options_nation_region,
@@ -132,10 +132,10 @@ def load_data(country_in,all_data_dict,filesize_dict):
                     'options_region': options_nation_region,
                     'province': df_province,
                     'options_province': options_province,
-                    'nation_str': country_in
+                    'nation_str': repo_in
                     }
 
-            all_data_dict[country_in] = data
+            all_data_dict[repo_in] = data
             filesize_dict[fs_key]['is_new'] = False
 
 def save_data(data_dir,filesize_dict):
@@ -202,6 +202,25 @@ def data2dropdown(country_in,dict_in):
     return region_drp, province_drp
 
 
+def set_regions_options(country_in,region_st,val_st,is_province):
+    if is_province:
+        suffix = 'P'
+    else:
+        suffix = 'R'
+    ret = [{'label': cur_item, 'value': '{}_{}_{}'.format(country_in,suffix,cur_item)} for cur_item in region_st if
+     '{}_{}_{}'.format(country_in,suffix,cur_item) not in val_st]
+    return ret
+
+def get_regions_options(str_in):
+    import re
+    m = re.search('(.+)_([PR])_(.+)', str_in)
+    if m:
+        country = m.group(1)
+        p_flag = m.group(2)
+        region_name = m.group(3)
+    else:
+        country, p_flag, region_name = 'a', 'a', 'a'
+    return [country, p_flag, region_name]
 
 if __name__ == "__main__":
     generate_plot('Italy')

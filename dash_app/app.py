@@ -7,7 +7,7 @@ from dash.dependencies import Input, Output, State
 from config import config_app
 from layout import app_layout, make_header, make_main,make_footer
 #from plots import bar_plot, scatter_plot, cnt_plot
-from functions import generate_plot,load_data,data2dropdown,save_data
+from functions import generate_plot,load_data,data2dropdown,save_data,get_regions_options,set_regions_options
 import json
 
 from constants import countries
@@ -112,8 +112,8 @@ def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, sel_reg_d
     if not update_done or n_clicks==0 or not sel_reg_dropdown:
         raise PreventUpdate
 
-    region_in = [cur_item.replace('R_','') for cur_item in sel_reg_dropdown if 'R_' in cur_item]
-    prov_in = [cur_item.replace('P_','') for cur_item in sel_reg_dropdown if 'P_' in cur_item]
+    region_in = [get_regions_options(cur_item)[2] for cur_item in sel_reg_dropdown if '_R_' in cur_item]
+    prov_in = [get_regions_options(cur_item)[2] for cur_item in sel_reg_dropdown if '_P_' in cur_item]
 
     rv = generate_plot(all_data_dict[country_in],aggr_in,col_in,norm_in,log_in,region_in,prov_in)
     return rv,'done'
@@ -160,8 +160,8 @@ def update_col_options(sel_reg_dropdown,col_st,norm_st,country_in):
 
     cur_dict = all_data_dict[country_in]
 
-    province_in = any("P_" in s for s in sel_reg_dropdown)
-    region_in = any("R_" in s for s in sel_reg_dropdown)
+    province_in = any("_P_" in s for s in sel_reg_dropdown)
+    region_in = any("_R_" in s for s in sel_reg_dropdown)
 
     if province_in and not region_in:
         options = cur_dict['options_province']
@@ -188,9 +188,10 @@ def update_col_options(sel_reg_dropdown,col_st,norm_st,country_in):
                [Input('btn_add', 'n_clicks')],
                [State('region_dropdown', 'value'),
                 State('province_dropdown', 'value'),
-                State('sel_reg_dropdown', 'value')
+                State('sel_reg_dropdown', 'value'),
+                State('country_dropdown', 'value')
                 ])
-def add_region(n_clicks,region_st,prov_st,val_st):
+def add_region(n_clicks,region_st,prov_st,val_st,country_in):
 
     if n_clicks==0 or (not region_st and not prov_st):
         raise PreventUpdate
@@ -198,11 +199,11 @@ def add_region(n_clicks,region_st,prov_st,val_st):
     if not val_st:
         val_st = []
 
-    opt_st = [{'label':cur_item.replace('P_','').replace('R_',''),'value':cur_item} for cur_item in val_st]
+    opt_st = [{'label':get_regions_options(cur_item)[2],'value':cur_item} for cur_item in val_st]
     if region_st:
-        opt_st.extend([{'label':cur_item,'value':'R_{}'.format(cur_item)} for cur_item in region_st if 'R_{}'.format(cur_item) not in val_st])
+        opt_st.extend(set_regions_options(country_in,region_st,val_st,False))
     if prov_st:
-        opt_st.extend([{'label':cur_item,'value':'P_{}'.format(cur_item)} for cur_item in prov_st if 'P_{}'.format(cur_item) not in val_st])
+        opt_st.extend(set_regions_options(country_in,prov_st,val_st,True))
 
     vals = [cur_item['value'] for cur_item in opt_st]
 
