@@ -11,10 +11,10 @@ from functions import generate_plot,load_data,data2dropdown
 import json
 
 import sys
-# import logging
-# logger = logging.getLogger(__name__)
-# logger.addHandler(logging.StreamHandler(stream=sys.stderr))
-# logger.setLevel(logging.DEBUG)
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler(stream=sys.stderr))
+logger.setLevel(logging.DEBUG)
 
 debug_flag = True
 
@@ -33,6 +33,8 @@ app = config_app(app, debug=debug_flag)
 app.layout = app_layout(header=make_header(),main=make_main(),footer=make_footer())
 
 all_data_dict = {}
+
+print('init')
 
 @app.callback([Output('page-main', 'children'),
                Output('country_dropdown', 'value')],
@@ -92,10 +94,12 @@ def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, region_in
                [Input('country_dropdown', 'value')])
 def load_data_callback(country_in):
 
+    app.server.logger.info('load_data_callback')
+
     if not country_in:
         raise PreventUpdate
 
-    load_data(country_in,all_data_dict)
+    load_data(country_in,all_data_dict,app)
     region_drp, province_drp = data2dropdown(country_in, all_data_dict)
     return region_drp, province_drp, 'done'
 
