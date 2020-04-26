@@ -5,5 +5,5 @@ __pycache__
 .idea/
 .cache/
 .DS_Store
-*.csv
+#*.csv
 data/
