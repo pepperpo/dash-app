@@ -9,8 +9,6 @@ from layout import app_layout, make_header, make_main,make_footer
 #from plots import bar_plot, scatter_plot, cnt_plot
 from functions import generate_plot,load_data,data2dropdown,save_data,get_regions_options,set_regions_options
 import json
-
-from constants import countries
 import urllib
 
 from concurrent.futures import ThreadPoolExecutor
@@ -57,8 +55,7 @@ def get_new_data_every(period=UPDADE_INTERVAL):
     """Update the data every 'period' seconds"""
     while True:
         save_data(data_dir, filesize_dict)
-        for cur_country in countries:
-            load_data(cur_country, all_data_dict,filesize_dict)
+        load_data(all_data_dict,filesize_dict)
         time.sleep(period)
 # Run the function in another thread
 executor = ThreadPoolExecutor(max_workers=1)

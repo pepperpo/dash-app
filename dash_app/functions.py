@@ -93,50 +93,74 @@ def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
 
 
 
-def load_data(repo_in,all_data_dict,filesize_dict):
+def load_data(all_data_dict,filesize_dict):
 
-    from constants import translation_dict
+    from constants import translation_dict, countries
 
-    if repo_in == 'Italy':
-        fs_key = '{}_Nation'.format(repo_in)
-        fs_key_region = '{}_Region'.format(repo_in)
-        fs_key_province = '{}_Province'.format(repo_in)
+    fs_key = 'Mobility_Apple'
+    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+        df_apple = pd.read_csv(
+            filesize_dict[fs_key]['f_path'],
+            header=0)
 
-        if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+    fs_key = 'Mobility_Google'
+    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+        df_google = pd.read_csv(
+            filesize_dict[fs_key]['f_path'],
+            header=0)
 
-            cur_tr = translation_dict[repo_in]
+    fs_key = 'Response_Oxford'
+    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+        df_oxford = pd.read_csv(
+            filesize_dict[fs_key]['f_path'],
+            header=0)
 
-            df_nation = pd.read_csv(
-                filesize_dict[fs_key]['f_path'],
-                header=0)
-            df_region = pd.read_csv(
-                filesize_dict[fs_key_region]['f_path'],
-                header=0)
-            df_province = pd.read_csv(
-                filesize_dict[fs_key_province]['f_path'],
-                header=0)
+    countries = df_apple['region']
 
-            options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
-            options_province_it = ['totale_casi']
+    for country_in in countries:
+        if country_in == 'Italy':
+            fs_key = '{}_Nation'.format(country_in)
+            fs_key_region = '{}_Region'.format(country_in)
+            fs_key_province = '{}_Province'.format(country_in)
 
-            #apply translations
-            options_nation_region = [cur_tr[cur_var] for cur_var in options_nation_region_it]
-            options_province = [cur_tr[cur_var] for cur_var in options_province_it]
-            df_nation.rename(columns=cur_tr, inplace=True)
-            df_region.rename(columns=cur_tr, inplace=True)
-            df_province.rename(columns=cur_tr, inplace=True)
+            if filesize_dict[fs_key]['is_new'] or not all_data_dict:
 
-            data = {'nation':df_nation,
-                    'options_nation':options_nation_region,
-                    'region': df_region,
-                    'options_region': options_nation_region,
-                    'province': df_province,
-                    'options_province': options_province,
-                    'nation_str': repo_in
-                    }
+                cur_tr = translation_dict[country_in]
 
-            all_data_dict[repo_in] = data
-            filesize_dict[fs_key]['is_new'] = False
+                df_nation = pd.read_csv(
+                    filesize_dict[fs_key]['f_path'],
+                    header=0)
+                df_region = pd.read_csv(
+                    filesize_dict[fs_key_region]['f_path'],
+                    header=0)
+                df_province = pd.read_csv(
+                    filesize_dict[fs_key_province]['f_path'],
+                    header=0)
+
+                options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
+                options_province_it = ['totale_casi']
+
+                #apply translations
+                options_nation_region = [cur_tr[cur_var] for cur_var in options_nation_region_it]
+                options_province = [cur_tr[cur_var] for cur_var in options_province_it]
+                df_nation.rename(columns=cur_tr, inplace=True)
+                df_region.rename(columns=cur_tr, inplace=True)
+                df_province.rename(columns=cur_tr, inplace=True)
+
+                data = {'nation':df_nation,
+                        'options_nation':options_nation_region,
+                        'region': df_region,
+                        'options_region': options_nation_region,
+                        'province': df_province,
+                        'options_province': options_province,
+                        'nation_str': country_in
+                        }
+
+                all_data_dict[country_in] = data
+                filesize_dict[fs_key]['is_new'] = False
+        #else:
+        #    df_oxford[]
+
 
 def save_data(data_dir,filesize_dict):
     from constants import urls
