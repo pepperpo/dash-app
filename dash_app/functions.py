@@ -106,7 +106,7 @@ def load_data(country_in,all_data_dict,app):
     if all_data_dict:
         prev_size = all_data_dict[country_in]['file_size']
         app.server.logger.info('{}, {}, {}'.format(response.status_code,size,prev_size))
-        if response.status_code == 200 and size > prev_size:
+        if response.status_code == 200:# and size > prev_size:
             reload_flag = True
         #else:
         #    print("File hasn't changed")
