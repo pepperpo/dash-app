@@ -62,7 +62,7 @@ def make_header():
 def make_control_panel():
     from constants import countries
     country_div = html.Div(
-        style={'backgroundColor': colors['background'],'width': '25%', 'display': 'inline-block', 'vertical-align': 'middle'},
+        style={'backgroundColor': colors['background'],'width': '30%', 'float':'left'},
         children=[
             dcc.Dropdown(
                 id='country_dropdown',
@@ -71,6 +71,47 @@ def make_control_panel():
                 clearable=False,
             ),
 
+        ])
+
+    region_drp_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '33%','float':'left'},
+        children=[
+            dcc.Dropdown(
+                id='region_dropdown',
+                placeholder="Country / Region / State / Prefecture",
+                multi=True,
+            ),
+        ])
+
+    province_drp_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '33%','float':'left','margin-left':'1%'},
+        children=[
+            dcc.Dropdown(
+                id='province_dropdown',
+                placeholder="Province / County",
+                multi=True,
+            ),
+        ])
+
+    loading_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '3%', 'float':'left','height': '50px'},
+        children=[
+            dbc.Spinner(
+                id="loading-submit",
+                children=[html.Div([html.Div(id="loading-submit-cnt1", style={'display': 'none'})]),
+                          html.Div([html.Div(id="loading-submit-cnt2", style={'display': 'none'})])],
+                size="sm",
+                color="primary",
+            ),
+        ])
+
+    controls_div = html.Div(
+        style={'backgroundColor': colors['background'], 'width': '100%', 'margin-top':'10px'},
+        children=[
+            country_div,
+            loading_div,
+            region_drp_div,
+            province_drp_div,
         ])
 
 
@@ -107,41 +148,15 @@ def make_control_panel():
         ])
 
 
-    region_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '100%'},
-        children=[
-            dcc.Dropdown(
-                id='region_dropdown',
-                placeholder="Country / Region / State / Prefecture",
-                multi=True,
-            ),
-        ])
-
-    province_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '100%','margin-top': '5px'},
-        children=[
-            dcc.Dropdown(
-                id='province_dropdown',
-                placeholder="Province / County",
-                multi=True,
-            ),
-        ])
 
 
-    subregions_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '47%','float':'left'},
-        children=[
-            region_drp_div,
-            province_drp_div
-        ])
 
     add_btn_div = html.Div(
-        className='button-subregions',
-        style={'backgroundColor': colors['background'],'width': '4%','height':'100%'},
-        children=[
-            html.Button('>', className='mybutton', id='btn_add',
-                        style={'border': 'none', 'color': 'white', 'borderRadius': '5px','height':'100%','width': '100%'})
-        ])
+            style={'backgroundColor': colors['background'],'width': '4%','height':'50px','float':'left'},
+            children=[
+                html.Button('>', className='mybutton', id='btn_add',
+                            style={'border': 'none', 'color': 'white', 'borderRadius': '5px','height':'100%','width': '100%'})
+            ])
 
     sel_subreg_div = html.Div(
         style={'backgroundColor': colors['background'], 'width': '47%','float':'left','margin-left':'6%'},
@@ -152,15 +167,6 @@ def make_control_panel():
                 multi=True,
                 style={'min-height': '75px'}
             ),
-        ])
-
-    regionsel_div = html.Div(
-        className='container-subregions',
-        style={'backgroundColor': colors['background'], 'width': '100%','float':'left'},
-        children=[
-            subregions_div,
-            add_btn_div,
-            sel_subreg_div
         ])
 
 
@@ -186,27 +192,7 @@ def make_control_panel():
         ])
 
 
-    loading_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '3%', 'display': 'inline-block',
-               'vertical-align': 'middle','height':'50px'},
-        children=[
-            dbc.Spinner(
-                id="loading-submit",
-                children=[html.Div([html.Div(id="loading-submit-cnt1", style={'display': 'none'})]),
-                          html.Div([html.Div(id="loading-submit-cnt2", style={'display': 'none'})])],
-                size="sm",
-                color="primary",
-            ),
-        ])
 
-
-    controls_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '100%', 'display': 'inline-block',
-               'vertical-align': 'middle'},
-        children=[
-            country_div,
-            loading_div,
-        ])
 
     radio_all_div = html.Div(
         style={'backgroundColor': colors['background'],
@@ -216,48 +202,14 @@ def make_control_panel():
             radio_log_div
         ])
 
-    health_div = html.Div(
-        style={'backgroundColor': colors['background'],
-               'vertical-align': 'middle', 'float':'left', 'width': '38%','borderRadius': '5px','border':'1px solid gray','padding':'5px','padding-top':'0px'},
-        children=[
-            html.Div(children=['Health stats'],style={'float':'left','margin-top':'-14px','background':'white','margin-bottom':'5px','padding-left':'5px','padding-right':'5px','padding-top':'0px','padding-bottom':'0px'}),
-            columns_div,
-            norm_div,
-            radio_all_div
-        ])
-
-
-    gov_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '30%', 'float': 'left', 'margin-left': '1%'},
-        children=[
-            dcc.Dropdown(
-                id='gov_dropdown',
-                placeholder="Government response (Oxford Univ.)",
-                multi=True,
-                style={'min-height': '160px'}
-            ),
-        ])
-
-    mob_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '30%', 'float': 'left', 'margin-left': '1%'},
-        children=[
-            dcc.Dropdown(
-                id='mob_dropdown',
-                placeholder="Mobility (Google/Apple)",
-                multi=True,
-                style={'min-height': '160px'}
-            ),
-        ])
-
-
 
     var_sel_div = html.Div(
         style={'backgroundColor': colors['background'],
                'vertical-align': 'middle', 'display': 'inline-block', 'width': '100%', 'margin-top': '15px'},
         children=[
-            health_div,
-            gov_div,
-            mob_div
+            columns_div,
+            norm_div,
+            radio_all_div
         ])
 
 
@@ -269,25 +221,43 @@ def make_control_panel():
             html.Div(children=['(messages and errors below the graph)'],style={'float':'left','margin-left':'10px'})
         ])
 
+    tabs_styles = {
+        'height': '44px'
+    }
+    tab_style = {
+        'padding': '6px',
+    }
+    tab_selected_style = {
+        'padding': '6px'
+    }
 
-    tabs = html.Div([
+    tabs = html.Div(id='tabs_div_id',children=[
         dcc.Tabs(id='tabs', value='health',
             children=[
-            dcc.Tab(label='Health stats', value='health'),
-            dcc.Tab(label='Government response', value='response'),
-            dcc.Tab(label='Mobility', value='mobility'),
-        ])
+            dcc.Tab(label='Health stats', value='health',style=tab_style, selected_style=tab_selected_style),
+            dcc.Tab(label='Government response', value='response',style=tab_style, selected_style=tab_selected_style),
+            dcc.Tab(label='Mobility', value='mobility',style=tab_style, selected_style=tab_selected_style),
+        ],style=tabs_styles)
     ])
 
+    tabs_mobility = html.Div(id='tabs_mob_div_id', children=[
+        dcc.Tabs(id='tabs_mob', value='google',
+                 children=[
+                     dcc.Tab(label='Google', value='google',style=tab_style, selected_style=tab_selected_style),
+                     dcc.Tab(label='Apple', value='apple',style=tab_style, selected_style=tab_selected_style),
+                 ],style=tabs_styles)
+    ])
 
     """Returns a div"""
     rv = html.Div(
         style={'backgroundColor': colors['background']},
         children=[
             tabs,
+            tabs_mobility,
             controls_div,
-            regionsel_div,
             var_sel_div,
+            sel_subreg_div,
+            add_btn_div,
             refresh_btn_div,
             ]
     )
@@ -330,17 +300,4 @@ def make_footer():
         ]
     )
     return rv
-
-# def make_main(plot=html.Div()):
-#     """Returns a div with a plot"""
-#     rv = html.Div(
-#         style={'backgroundColor': colors['background']},
-#         children=[
-#             dcc.Graph(
-#                 id='fig',
-#                 figure=plot
-#             )
-#         ]
-#     )
-#     return rv
 

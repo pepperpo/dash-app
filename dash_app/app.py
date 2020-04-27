@@ -207,5 +207,13 @@ def add_region(n_clicks,region_st,prov_st,val_st,country_in):
 
 
 
+@app.callback(Output('tabs_mob_div_id', 'style'),
+              [Input('tabs', 'value')])
+def tab1_render(tab):
+    if tab == 'mobility':
+        return {'display': 'block'}
+    else:
+        return {'display': 'none'}
+
 if __name__ == '__main__':
     app.run_server(debug=debug_flag)
