@@ -96,6 +96,7 @@ def plot_df(df,fig_data,annot_flag,aggr_in,col_in,norm_in,log_in,suffix=''):
 def load_data(all_data_dict,filesize_dict):
 
     from constants import translation_dict, countries
+    import numpy as np
 
     fs_key = 'Mobility_Apple'
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
@@ -107,10 +108,11 @@ def load_data(all_data_dict,filesize_dict):
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
         df_google = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
-            header=0)
+            header=0,dtype={'sub_region_2':str})
 
     fs_key = 'Response_Oxford'
-    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+    if (filesize_dict[fs_key]['is_new'] or not all_data_dict) and False:
+        print('here')
         df_oxford = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0)
@@ -195,7 +197,8 @@ def save_data(data_dir,filesize_dict):
                 extension = os.path.splitext(url_path)[1]
                 file_path = os.path.join(data_dir, fname + extension)
 
-                reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
+                #reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
+                reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
 
                 if status_code==200 and reload_flag:
                     myFile = requests.get(url_name)

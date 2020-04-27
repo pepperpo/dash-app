@@ -62,8 +62,7 @@ executor = ThreadPoolExecutor(max_workers=1)
 executor.submit(get_new_data_every)
 
 
-@app.callback([Output('page-main', 'children'),
-               Output('country_dropdown', 'value')],
+@app.callback(Output('page-main', 'children'),#,Output('country_dropdown', 'value')
               [Input('url', 'pathname')],
               [State('country_dropdown', 'options')])
 def routing(pathname,country_opt):
@@ -87,7 +86,7 @@ def routing(pathname,country_opt):
     # else:
     #     rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
 
-    return rv,country_opt[0]['value']
+    return rv#,country_opt[0]['value']
 
 # @server.route("/")
 # def MyDashApp():

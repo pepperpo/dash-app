@@ -270,10 +270,21 @@ def make_control_panel():
         ])
 
 
+    tabs = html.Div([
+        dcc.Tabs(id='tabs', value='health',
+            children=[
+            dcc.Tab(label='Health stats', value='health'),
+            dcc.Tab(label='Government response', value='response'),
+            dcc.Tab(label='Mobility', value='mobility'),
+        ])
+    ])
+
+
     """Returns a div"""
     rv = html.Div(
         style={'backgroundColor': colors['background']},
         children=[
+            tabs,
             controls_div,
             regionsel_div,
             var_sel_div,
