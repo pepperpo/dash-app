@@ -196,9 +196,9 @@ def save_data(data_dir,filesize_dict,app):
                 file_path = os.path.join(data_dir, fname + extension)
 
                 #reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
-                reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
+                #reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
 
-                if status_code==200 and reload_flag:
+                if status_code==200: #and reload_flag:
                     app.server.logger.info('Downloading {}'.format(fname))
                     myFile = requests.get(url_name)
                     open(file_path, 'wb').write(myFile.content)
