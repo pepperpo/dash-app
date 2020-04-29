@@ -18,10 +18,10 @@ import time
 
 
 import sys
-# import logging
-# logger = logging.getLogger(__name__)
-# logger.addHandler(logging.StreamHandler(stream=sys.stderr))
-# logger.setLevel(logging.DEBUG)
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler(stream=sys.stderr))
+logger.setLevel(logging.DEBUG)
 
 debug_flag = True
 
@@ -46,11 +46,12 @@ if platform == "darwin":
 else:
     data_dir = os.path.normpath("/var/lib/dash/data")
 
-
+#counter = 0
 all_data_dict = {}
 filesize_dict = {}
+
 # number of seconds between re-calculating the data
-UPDADE_INTERVAL = 10#600
+UPDADE_INTERVAL = 600
 def get_new_data_every(period=UPDADE_INTERVAL):
     """Update the data every 'period' seconds"""
     while True:
@@ -62,7 +63,8 @@ executor = ThreadPoolExecutor(max_workers=1)
 executor.submit(get_new_data_every)
 
 
-@app.callback(Output('page-main', 'children'),#,Output('country_dropdown', 'value')
+@app.callback([Output('page-main', 'children'),
+               Output('tabs', 'value')],#,Output('country_dropdown', 'value')
               [Input('url', 'pathname')],
               [State('country_dropdown', 'options')])
 def routing(pathname,country_opt):
@@ -79,6 +81,9 @@ def routing(pathname,country_opt):
 
     rv = make_main()
 
+    #save_data(data_dir, filesize_dict)
+    #load_data(all_data_dict, filesize_dict)
+
     # if pathname == '/bar':
     #     rv = make_main(bar_plot)
     # elif pathname == '/scatter':
@@ -86,7 +91,7 @@ def routing(pathname,country_opt):
     # else:
     #     rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
 
-    return rv#,country_opt[0]['value']
+    return rv,'health'#,country_opt[0]['value']
 
 # @server.route("/")
 # def MyDashApp():
@@ -94,43 +99,51 @@ def routing(pathname,country_opt):
 #     print('HERE')
 #     return app.index()
 
+
 @app.callback([Output('bar_graph', 'figure'),
-               Output('loading-submit-cnt1','children')],
-              [Input('btn_refresh', 'n_clicks'),
-               Input('loading-submit-cnt2', 'children')],
-              [State('aggragation_radio', 'value'),
-               State('columns_dropdown', 'value'),
-               State('norm_dropdown', 'value'),
+               Output('loading-submit-cnt1','children'),
+               Output('messages','children')],
+              [Input('btn_refresh', 'n_clicks')],
+              [State('sel_reg_dropdown', 'data'),
+               State('aggragation_radio', 'value'),
                State('log_radio', 'value'),
-               State('sel_reg_dropdown', 'value'),
-               State('country_dropdown', 'value')])
-def update_plot(n_clicks,update_done,aggr_in, col_in, norm_in, log_in, sel_reg_dropdown,country_in):
-    if not update_done or n_clicks==0 or not sel_reg_dropdown:
+               ])
+def update_plot(n_clicks,sel_reg_dropdown,aggr_in,log_in):
+    if n_clicks==0 or not sel_reg_dropdown:
         raise PreventUpdate
 
-    region_in = [get_regions_options(cur_item)[2] for cur_item in sel_reg_dropdown if '_R_' in cur_item]
-    prov_in = [get_regions_options(cur_item)[2] for cur_item in sel_reg_dropdown if '_P_' in cur_item]
-
-    rv = generate_plot(all_data_dict[country_in],aggr_in,col_in,norm_in,log_in,region_in,prov_in)
-    return rv,'done'
+    rv,messages = generate_plot(all_data_dict,sel_reg_dropdown,aggr_in,log_in)
+    ret_div = html.Div(messages)
+    return rv,'done',ret_div
 
 
 
-@app.callback([Output('region_dropdown', 'options'),
-               Output('province_dropdown','options'),
+@app.callback([Output('area_dropdown', 'options'),
+               Output('area_dropdown', 'value'),
                Output('loading-submit-cnt2','children')],
+               [Input('area_type_dropdown', 'value')],
+               [State('country_dropdown', 'value')])
+def load_data_callback(area_type,country_in):
+    area_drp = []
+    if country_in in all_data_dict and area_type:
+        area_drp = data2dropdown(country_in, area_type, all_data_dict)
+    return area_drp,[], 'done'
+
+
+@app.callback([Output('area_type_dropdown', 'options'),
+               Output('area_type_dropdown', 'value')],
                [Input('country_dropdown', 'value')])
-def load_data_callback(country_in):
+def show_area_type_drp(country_in):
 
     if not country_in:
         raise PreventUpdate
 
-    if country_in not in all_data_dict:
-        raise PreventUpdate
+    area_type = []
+    if country_in in all_data_dict:
+        area_type_list = all_data_dict[country_in].keys()
+        area_type = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_type_list]
 
-    region_drp, province_drp = data2dropdown(country_in, all_data_dict)
-
-    return region_drp, province_drp, 'done'
+    return area_type,None
 
 
 
@@ -139,81 +152,140 @@ def load_data_callback(country_in):
                Output('columns_dropdown', 'value'),
                Output('norm_dropdown', 'value'),
                ],
-               [Input('sel_reg_dropdown', 'value')],
-              [State('columns_dropdown', 'value'),
-               State('norm_dropdown', 'value'),
-               State('country_dropdown','value')]
+               [Input('area_type_dropdown', 'value')],
+              [State('country_dropdown', 'value')]
               )
-def update_col_options(sel_reg_dropdown,col_st,norm_st,country_in):
-
-    if not sel_reg_dropdown:
-        raise PreventUpdate
+def update_col_options(area_type,country_in):
 
     col_drp = []
     norm_drp = []
     new_col_val = None
     new_norm_val = None
 
-    cur_dict = all_data_dict[country_in]
-
-    province_in = any("_P_" in s for s in sel_reg_dropdown)
-    region_in = any("_R_" in s for s in sel_reg_dropdown)
-
-    if province_in and not region_in:
-        options = cur_dict['options_province']
-        col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in options]
-    else:
-        options = cur_dict['options_nation']
-        col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in options]
-        norm_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in options]
-
-    if province_in:
-        norm_drp = []
-
-    if col_st:
-        new_col_val = [value for value in options if value in col_st]
-    if norm_st:
-        new_norm_val = [value for value in options if value in norm_st]
+    if area_type and country_in:
+        cur_dict = all_data_dict[country_in][area_type]
+        col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in cur_dict['options']]
+        norm_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in cur_dict['norm']]
 
     return col_drp,norm_drp,new_col_val,new_norm_val
 
 
 
-@app.callback([Output('sel_reg_dropdown', 'options'),
-               Output('sel_reg_dropdown','value')],
+@app.callback(Output('sel_reg_dropdown','data'),
                [Input('btn_add', 'n_clicks')],
-               [State('region_dropdown', 'value'),
-                State('province_dropdown', 'value'),
-                State('sel_reg_dropdown', 'value'),
-                State('country_dropdown', 'value')
+               [State('area_type_dropdown', 'value'),
+                State('area_dropdown', 'value'),
+                State('sel_reg_dropdown', 'data'),
+                State('country_dropdown', 'value'),
+                State('tabs', 'value'),
+                State('tabs_mob', 'value'),
+                State('columns_dropdown', 'value'),
+                State('norm_dropdown', 'value'),
                 ])
-def add_region(n_clicks,region_st,prov_st,val_st,country_in):
+def add_region(n_clicks,area_type_st,area_st,table_st,country_in,tabs,tabs_mob,columns_dropdown,norm_dropdown):
 
-    if n_clicks==0 or (not region_st and not prov_st):
+    if n_clicks == 0 or not columns_dropdown:
         raise PreventUpdate
 
-    if not val_st:
-        val_st = []
+    if not table_st:
+        table_st = []
 
-    opt_st = [{'label':get_regions_options(cur_item)[2],'value':cur_item} for cur_item in val_st]
-    if region_st:
-        opt_st.extend(set_regions_options(country_in,region_st,val_st,False))
-    if prov_st:
-        opt_st.extend(set_regions_options(country_in,prov_st,val_st,True))
+    if tabs == 'Mobility':
+        tabs_str = '{} - {}'.format(tabs,tabs_mob)
+    else:
+        tabs_str = tabs
 
-    vals = [cur_item['value'] for cur_item in opt_st]
+    if not norm_dropdown:
+        norm_dropdown = ''
 
-    return opt_st, vals
+    if not tabs == 'health':
+        aggragation_radio = ''
+        log_radio = ''
 
+    new_rows = []
+    for cur_area in area_st:
+        for cur_col in columns_dropdown:
+            new_row = {'Tab': tabs_str,
+                       'Data': country_in,
+                       'Area': cur_area,
+                       'Area type': area_type_st,
+                       'Variable':cur_col,
+                       'Denominator':norm_dropdown}#,
+                       #'Lin/Log':log_radio,
+                       #'Var/Cum':aggragation_radio}
+            new_rows.append(new_row)
+
+    for cur_i,cur_row2 in enumerate(table_st):
+        cur_row2['Legend']=cur_i+1
+
+    for cur_row1 in new_rows:
+        exist_flag = False
+        for cur_row2 in table_st:
+            if all(item in cur_row2.items() for item in cur_row1.items()):
+                exist_flag=True
+                break
+        if exist_flag==False:
+            cur_row1['Legend']=len(table_st)+1
+            table_st.append(cur_row1)
+
+    return table_st
 
 
 @app.callback(Output('tabs_mob_div_id', 'style'),
               [Input('tabs', 'value')])
 def tab1_render(tab):
     if tab == 'mobility':
-        return {'display': 'block'}
+        ret_style = {'display': 'block'}
     else:
-        return {'display': 'none'}
+        ret_style = {'display': 'none'}
+    return ret_style
+
+
+
+@app.callback(Output('country_dropdown', 'options'),
+              [Input('tabs', 'value')])
+def update_content(tab):
+    #global counter
+    #app.server.logger.info(counter)
+
+    countries_drp=[]
+    if tab == 'mobility':
+        pass
+    elif tab == 'health':
+        if 'Response_Oxford' in all_data_dict:
+            countries = all_data_dict['Response_Oxford']['CountryName'].unique().tolist()
+            #app.server.logger.info('here1')
+            #app.server.logger.info(countries)
+            countries_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in countries]
+    elif tab == 'response':
+        pass
+
+    #counter+=1
+    return countries_drp
+
+
+@app.callback([Output('aggragation_radio', 'value'),
+               Output('aggragation_radio', 'style')],
+              [Input('log_radio', 'value')],
+              [State('aggragation_radio', 'value')])
+def tab1_render(log_in,aggr_in):
+    if log_in == 'lin':
+        return aggr_in,{'display':'block'}
+    else:
+        return 'cum',{'pointer-events':'none','opacity':'0.5'}
 
 if __name__ == '__main__':
     app.run_server(debug=debug_flag)
+
+
+
+
+
+
+
+
+
+
+
+
+
