@@ -79,6 +79,7 @@ def plot_df(df,fig_data,aggr_in,cur_col,norm_in,log_in,legend):
 
 def load_data(all_data_dict,filesize_dict,app):
 
+    from datetime import timedelta
     from constants import translation_dict
     import numpy as np
 
@@ -106,6 +107,7 @@ def load_data(all_data_dict,filesize_dict,app):
         cur_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0,converters={'Date':pd.to_datetime})
+        cur_df['Date'] -= timedelta(days=1) #pd.to_datetime(cur_df['Date'])
         all_data_dict[fs_key] = cur_df
         filesize_dict[fs_key]['is_new'] = False
 
