@@ -77,13 +77,14 @@ def plot_df(df,fig_data,aggr_in,cur_col,norm_in,log_in,legend):
 
 
 
-def load_data(all_data_dict,filesize_dict):
+def load_data(all_data_dict,filesize_dict,app):
 
     from constants import translation_dict
     import numpy as np
 
     fs_key = 'Mobility_Apple'
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+        app.server.logger.info('Refreshing {}'.format(fs_key))
         cur_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0)
@@ -92,6 +93,7 @@ def load_data(all_data_dict,filesize_dict):
 
     fs_key = 'Mobility_Google'
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+        app.server.logger.info('Refreshing {}'.format(fs_key))
         cur_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0,dtype={'sub_region_2':str})
@@ -100,6 +102,7 @@ def load_data(all_data_dict,filesize_dict):
 
     fs_key = 'Response_Oxford'
     if (filesize_dict[fs_key]['is_new'] or not all_data_dict):
+        app.server.logger.info('Refreshing {}'.format(fs_key))
         cur_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0,converters={'Date':pd.to_datetime})
@@ -115,6 +118,7 @@ def load_data(all_data_dict,filesize_dict):
             fs_key_region = '{}_Region'.format(country_in)
             fs_key_province = '{}_Province'.format(country_in)
             if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+                app.server.logger.info('Refreshing {}'.format(fs_key))
 
                 cur_tr = translation_dict[country_in]
 
@@ -158,7 +162,7 @@ def load_data(all_data_dict,filesize_dict):
             all_data_dict[country_in] = data
 
 
-def save_data(data_dir,filesize_dict):
+def save_data(data_dir,filesize_dict,app):
     from constants import urls
     import requests
     import os
@@ -195,6 +199,7 @@ def save_data(data_dir,filesize_dict):
                 reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
 
                 if status_code==200 and reload_flag:
+                    app.server.logger.info('Downloading {}'.format(fname))
                     myFile = requests.get(url_name)
                     open(file_path, 'wb').write(myFile.content)
                     filesize_dict[fname]={'size':size,'is_new':True,'f_path':file_path}

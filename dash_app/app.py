@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from sys import platform
 import os
 import time
+from datetime import datetime
 
 
 import sys
@@ -55,8 +56,12 @@ UPDADE_INTERVAL = 600
 def get_new_data_every(period=UPDADE_INTERVAL):
     """Update the data every 'period' seconds"""
     while True:
-        save_data(data_dir, filesize_dict)
-        load_data(all_data_dict,filesize_dict)
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        app.server.logger.info("Attempting to refresh data at: {}".format(current_time))
+
+        save_data(data_dir, filesize_dict,app)
+        load_data(all_data_dict,filesize_dict,app)
         time.sleep(period)
 # Run the function in another thread
 executor = ThreadPoolExecutor(max_workers=1)
