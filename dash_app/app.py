@@ -45,7 +45,7 @@ app.layout = app_layout(header=make_header(),main=make_main(),footer=make_footer
 
 # Start new thread to check if files changed and save them
 if platform == "darwin":
-    data_dir = os.path.join('..','..','..','Data','COVID-MAC')
+    data_dir = os.path.join('Data','COVID-MAC')
 else:
     data_dir = os.path.normpath("/var/lib/dash/data")
 
