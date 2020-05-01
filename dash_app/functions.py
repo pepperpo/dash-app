@@ -4,11 +4,14 @@ import plotly.graph_objects as go
 import json
 import time
 import dash_html_components as html
+from plotly.subplots import make_subplots
+import plotly.express as px
 
-def generate_plot(dash_session_in,sel_reg_dropdown,aggr_in,log_in):
+def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
 
     fig = go.Figure()
-    fig.update_layout( margin={'t': 0})
+    fig.update_layout( margin={'t': 40})
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     fig_data = []
     annot_flag = [False]
@@ -17,37 +20,65 @@ def generate_plot(dash_session_in,sel_reg_dropdown,aggr_in,log_in):
 
     messages = []
 
+    stFlag = False
     for cur_row in sel_reg_dropdown:
+        cur_area = cur_row['Area']
+        norm_in = cur_row['Denominator']
+        col_in = cur_row['Variable']
+        legend = cur_row['Legend']
+        is_visible = cur_row['Visible (on/off)']
+        if is_visible == 'on':
+            if cur_row['Tab']=='health':
+                dash_session = data_dict[cur_row['Data']][cur_row['Area type']]
+                df = pd.DataFrame(dash_session['data'])
+                if dash_session['loc']:
+                    cur_idx = df[dash_session['loc']] == cur_area
+                    df = df.loc[cur_idx]
 
-        if cur_row['Tab']=='health':
-            dash_session = dash_session_in[cur_row['Data']][cur_row['Area type']]
-            cur_area = cur_row['Area']
-            #aggr_in = cur_row['Var/Cum']
-            #log_in = cur_row['Lin/Log']
-            norm_in = cur_row['Denominator']
-            col_in = cur_row['Variable']
-            legend = cur_row['Legend']
+                cur_msg = plot_df(df,fig,aggr_in,col_in,norm_in,log_in,legend,False)
+                if cur_msg:
+                    messages.extend(cur_msg)
 
-            df = pd.DataFrame(dash_session['data'])
-            if dash_session['loc']:
-                cur_idx = df[dash_session['loc']] == cur_area
+            if cur_row['Tab']=='response':
+                if col_in == 'StringencyIndex':
+                    stFlag = True
+                df = data_dict['Response_Oxford']['df']
+                cur_idx = df['CountryName'] == cur_area
                 df = df.loc[cur_idx]
+                plot_df(df, fig, 'cum', col_in, None, 'lin', legend,True)
+                #messages.extend([html.Div('Testing2')])
 
-            valid_flag = plot_df(df,fig_data,aggr_in,col_in,norm_in,log_in,legend)
-            if valid_flag==False:
-                messages.append(html.P('Trace {} could not be plotted because log of negative value'.format(legend)))
+    if stFlag:
+        annotations = [
+            dict(
+                x=0.01,
+                y=1.,
+                showarrow=False,
+                text="Hover on the StringencyIndex to see more details",
+                xref="paper",
+                yref="paper"
+            )]
+    else:
+        annotations = []
 
-    fig = go.Figure(data=fig_data)
+
+    #fig = go.Figure(data=fig_data)
+
+    # Set y-axes titles
+    fig.update_yaxes(title_text="health", secondary_y=False)
+    fig.update_yaxes(title_text="response / mobility", secondary_y=True)
 
     # Change the bar mode
     if log_in=='lin':
         log_in = 'linear'
-    fig.update_layout(hovermode='x unified',yaxis_type=log_in,margin={'t': 0},legend_orientation="h",showlegend=True,legend_title_text='Legend: ')
+
+    #hovermode='x unified',
+    fig.update_layout(yaxis_type=log_in,margin={'t': 40},legend_orientation="h",showlegend=True,legend_title_text='Legend: ',annotations=annotations)
 
     return fig,messages
 
 
-def plot_df(df,fig_data,aggr_in,cur_col,norm_in,log_in,legend):
+def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
     date = df['date'].dt.date
 
     if norm_in:
@@ -68,12 +99,17 @@ def plot_df(df,fig_data,aggr_in,cur_col,norm_in,log_in,legend):
 
     y_val = numer / denom
 
+    cur_msg = []
     if not (np.any(y_val < 0) and log_in == 'log'):
-        fig_data.append(go.Scatter(name='{}'.format(legend), x=date, y=y_val, mode='lines+markers'))
-        valid_flag = True
+        if cur_col=='StringencyIndex':
+            add_txt = df['text']
+        else:
+            add_txt = None
+        fig.add_trace(go.Scatter(name='{}'.format(legend), x=date, y=y_val, mode='lines+markers',text=add_txt),secondary_y=secondary_y)
     else:
-        valid_flag = False
-    return valid_flag
+        cur_msg = [html.Div('Trace {} could not be plotted because log of negative value'.format(legend))]
+    #cur_msg = [html.Div('Testing')]
+    return cur_msg
 
 
 
@@ -108,12 +144,43 @@ def load_data(all_data_dict,filesize_dict,app):
             filesize_dict[fs_key]['f_path'],
             header=0,converters={'Date':pd.to_datetime})
         cur_df['Date'] -= timedelta(days=1) #pd.to_datetime(cur_df['Date'])
-        all_data_dict[fs_key] = cur_df
+        countries = cur_df['CountryName'].unique().tolist()
+        col_names_f = cur_df.columns.tolist()[3:-4]
+        if 'ConfirmedDeaths' in col_names_f:
+            col_names_f.remove('ConfirmedDeaths')
+        if 'ConfirmedCases' in col_names_f:
+            col_names_f.remove('ConfirmedCases')
+        col_names = ['StringencyIndex'] + col_names_f
+        cur_tr = translation_dict['Response_Oxford']
+        cur_df.rename(columns=cur_tr, inplace=True)
+
+        cur_df.sort_values(by=['CountryName', 'date'],inplace=True)
+        cur_df.reset_index(inplace=True)
+        text_col = []
+        for index in cur_df.index:
+            cur_str = []
+            if index > 0:
+                if cur_df.loc[index - 1, 'CountryName'] == cur_df.loc[index, 'CountryName']:
+                    for col_i,cur_col in enumerate(col_names_f):
+                        if not(np.isnan(cur_df.loc[index,cur_col]) and np.isnan(cur_df.loc[index-1,cur_col])) and \
+                                cur_df.loc[index,cur_col] != cur_df.loc[index-1,cur_col]:
+                            if col_i%2==0:
+                                new_str = '{}:{}→{}'.format(cur_col,cur_df.loc[index-1,cur_col],cur_df.loc[index,cur_col])
+                            else:
+                                new_str = 'Flag of {}:{}→{}'.format(col_names_f[col_i-1], cur_df.loc[index-1, cur_col], cur_df.loc[index, cur_col])
+                            cur_str.append(new_str)
+            cur_str = "<br>".join(cur_str)
+            text_col.append(cur_str)
+        cur_df['text'] = text_col
+
+        all_data_dict[fs_key] = {'df':cur_df,'countries':countries,'col_names':col_names}
         filesize_dict[fs_key]['is_new'] = False
 
 
-    countries = all_data_dict['Response_Oxford']['CountryName'].unique().tolist()
 
+    countries = all_data_dict['Response_Oxford']['countries']
+
+    health_flag = False
     for country_in in countries:
         if country_in == 'Italy':
             fs_key = '{}_Nation'.format(country_in)
@@ -155,16 +222,17 @@ def load_data(all_data_dict,filesize_dict,app):
                 all_data_dict[country_in] = data
                 filesize_dict[fs_key]['is_new'] = False
         else:
-            cur_tr = translation_dict['Response_Oxford']
-            health_cols = ['Date','CountryName','ConfirmedCases','ConfirmedDeaths']
-            health_opts = [cur_tr[cur_var] for cur_var in health_cols[2:]]
-            df_nation = all_data_dict['Response_Oxford'].loc[:,health_cols]
-            df_nation.rename(columns=cur_tr, inplace=True)
+            health_cols = ['date','CountryName','total_cases','deaths']
+            health_opts = health_cols[2:]
+            if health_flag == False:
+                all_data_dict['health_opts'] = health_opts
+                health_flag = True
+            df_nation = all_data_dict['Response_Oxford']['df'].loc[:,health_cols]
             data = {'Country': {'data': df_nation, 'options': health_opts, 'norm': health_opts,'cols': [country_in],'loc':'CountryName'}}
             all_data_dict[country_in] = data
 
 
-def save_data(data_dir,filesize_dict,app):
+def save_data(data_dir,filesize_dict,app,reload_flag=True):
     from constants import urls
     import requests
     import os
@@ -200,11 +268,12 @@ def save_data(data_dir,filesize_dict,app):
                 #reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
                 #reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
 
-                if status_code==200: #and reload_flag:
+                filesize_dict[fname] = {'size': size, 'is_new': True, 'f_path': file_path}
+                if status_code==200 and reload_flag:
                     app.server.logger.info('Downloading {}'.format(fname))
                     myFile = requests.get(url_name)
                     open(file_path, 'wb').write(myFile.content)
-                    filesize_dict[fname]={'size':size,'is_new':True,'f_path':file_path}
+
 
 
 def data2dropdown(country_in,area_type,dict_in):

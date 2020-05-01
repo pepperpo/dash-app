@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from style import colors
+from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style
 import plotly.graph_objects as go
 import dash_table
 
@@ -63,39 +63,41 @@ def make_header():
 def make_control_panel():
     from constants import table_cols
     country_div = html.Div(
-        style={'backgroundColor': colors['background'],'width': '30%', 'float':'left'},
+        id='country_div_id',
+        style=default_style_country,
         children=[
             dcc.Dropdown(
                 id='country_dropdown',
-                placeholder="Select dataset",
+                placeholder='Select countries (multiple allowed)',
                 #options=[{'label': country, 'value': country} for country in countries],
                 clearable=False,
+                multi=True,
             ),
 
         ])
 
     area_type_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '13%', 'float':'left'},
+        style={'backgroundColor': colors['background'], 'width': '20%', 'float':'left'},
         children=[
             dcc.Dropdown(
                 id='area_type_dropdown',
-                placeholder="Select area type",
+                placeholder="",
                 clearable=False,
             ),
         ])
 
     area_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '53%', 'float':'left','margin-left':'1%'},
+        style={'backgroundColor': colors['background'], 'width': '79%', 'float':'left','margin-left':'1%'},
         children=[
             dcc.Dropdown(
                 id='area_dropdown',
-                placeholder="Select area",
+                placeholder="",
                 multi=True,
             ),
         ])
 
     loading_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '3%', 'float':'left','height':'40px','margin-top':'-8px'},
+        style={'backgroundColor': colors['background'], 'width': '3%', 'float':'left','height':'40px','margin-top':'-10px'},
         children=[
             dbc.Spinner(
                 id="loading-submit",
@@ -106,13 +108,16 @@ def make_control_panel():
             ),
         ])
 
+    area_div = html.Div(id='area_div_id',
+        style=default_style_area,
+        children=[area_type_drp_div,
+                  area_drp_div,])
+
     controls_div = html.Div(
         style={'backgroundColor': colors['background'], 'width': '100%', 'float':'left','margin-top':'10px'},
         children=[
             country_div,
-            loading_div,
-            area_type_drp_div,
-            area_drp_div,
+            area_div
         ])
 
 
@@ -155,7 +160,9 @@ def make_control_panel():
                 html.Button('Add to table', className='mybutton', id='btn_add',
                             style={'float':'left','border': 'none', 'color': 'white', 'borderRadius': '5px','height':'100%','width': '10%'}),
                 html.Div(children=['(to plot add variables to the table)'],
-                         style={'float': 'left', 'margin-left': '10px'})
+                         style={'float': 'left', 'margin-left': '10px'}),
+                loading_div,
+
             ])
 
     # sel_subreg_div = html.Div(
@@ -169,28 +176,61 @@ def make_control_panel():
     #         ),
     #     ])
 
+    table_cols_def = []
+    for cur_col in table_cols:
+        if cur_col=='Visible (on/off)':
+            editable=True
+        else:
+            editable=False
+        table_cols_def.append({
+                    'name': '{}'.format(cur_col),
+                    'id': '{}'.format(cur_col),
+                    'deletable': False,
+                    'renamable': False,
+                    'editable':editable,
+                })
+
+
+
     table_div = html.Div(
         className='table_div',
         style={'backgroundColor': colors['background'], 'width': '100%', 'float': 'left','margin-top':'5px'},
         children=[
             dash_table.DataTable(
                 id='sel_reg_dropdown',
-                columns=[{
-                    'name': '{}'.format(i),
-                    'id': '{}'.format(i),
-                    'deletable': False,
-                    'renamable': False
-                } for i in table_cols],
+                columns=table_cols_def,
                 #data=[
                 #    {j: [''] for j in table_cols}
                 #],
                 editable=False,
-                row_deletable=True
+                row_deletable=True,
+                style_data_conditional=[{
+                        'if': {
+                            'column_id': 'Visible (on/off)',
+                            'filter_query': '{Visible (on/off)} eq "on"'
+                        },
+                        'backgroundColor': '#3D9970',
+                        'color': 'white',
+                    },
+                    {
+                        'if': {
+                            'column_id': 'Visible (on/off)',
+                            'filter_query': '{Visible (on/off)} ne "on"'
+                        },
+                        'backgroundColor': '#b30000',
+                        'color': 'white',
+                    },
+                ],
+                style_cell_conditional=[
+                    {'if': {'column_id': 'Visible (on/off)'},
+                     'width': '10%'},
+                ]
             ),
         ])
 
     columns_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '69%','float':'left'},
+        id='columns_div_id',
+        style=default_column_style,
         children=[
             dcc.Dropdown(
                 id='columns_dropdown',
@@ -200,7 +240,8 @@ def make_control_panel():
         ])
 
     norm_div = html.Div(
-        style={'backgroundColor': colors['background'],'float':'left','width':'30%','margin-left':'1%'},
+        id='norm_div_id',
+        style=default_norm_style,
         children=[
             dcc.Dropdown(
                 id='norm_dropdown',
@@ -212,10 +253,16 @@ def make_control_panel():
 
 
     radio_all_div = html.Div(
-        style={'backgroundColor': colors['background'],'float':'left','margin-top':'10px','width':'20%','margin-bottom':'-10px'},
+        style={'backgroundColor': colors['background'],'float':'left','margin-top':'5px','margin-bottom':'-5px'},
         children=[
-            radio_log_div,
-            radio_div,
+            html.Div(
+                children=['Plotting parameters for health stats:']),
+            html.Div(
+                style={'margin-top':'5px'},
+                children=[
+                    radio_log_div,
+                    radio_div]
+                )
         ])
 
 
@@ -249,7 +296,7 @@ def make_control_panel():
         dcc.Tabs(id='tabs', value='health',
             children=[
             dcc.Tab(label='Health stats', value='health',style=tab_style, selected_style=tab_selected_style),
-            dcc.Tab(label='Government response', value='response',style=tab_style, selected_style=tab_selected_style,disabled=True),
+            dcc.Tab(label='Government response', value='response',style=tab_style, selected_style=tab_selected_style),
             dcc.Tab(label='Mobility', value='mobility',style=tab_style, selected_style=tab_selected_style,disabled=True),
         ],style=tabs_styles)
     ])
@@ -281,13 +328,14 @@ def make_control_panel():
 
 def make_main(plot=html.Div()):
     """Returns a div with a plot"""
+
     rv = html.Div(
         style={'backgroundColor': colors['background']},
         children=[
             make_control_panel(),
             dcc.Graph(
                 id='bar_graph',
-                figure=go.Figure({'layout':{'margin':{'t': 0}}})),
+                figure=go.Figure({'layout':{'margin':{'t': 40}}})),
 
             html.Div(
                 style={'background':'#DCDCDC','border-top-left-radius':'5px','border-top-right-radius':'5px','padding-left':'5px','font-size': 'large'},
@@ -334,7 +382,7 @@ def make_footer():
                              target="_blank")]),
 
 
-            html.P('')
+            html.P(''),
         ]
     )
     return rv

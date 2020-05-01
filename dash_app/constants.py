@@ -27,4 +27,4 @@ urls = {'Italy':    {'Nation'  :'https://raw.githubusercontent.com/pcm-dpc/COVID
         'Response': {'Oxford'  :'https://github.com/OxCGRT/covid-policy-tracker/raw/master/data/OxCGRT_latest.csv'}
      }
 
-table_cols = ['Legend','Tab','Data','Area','Area type','Variable','Denominator']#,'Lin/Log','Var/Cum']
+table_cols = ['Legend','Tab','Data','Area','Area type','Variable','Denominator','Visible (on/off)']#,'Lin/Log','Var/Cum']
