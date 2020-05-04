@@ -75,7 +75,8 @@ executor.submit(get_new_data_every)
 
 
 out1 = [Output('page-main', 'children'),
-               Output('tabs', 'value')]
+               Output('tabs', 'value'),
+        Output('javascript', 'run')]
 
 out2 = [Output('page-main', 'children')]
 
@@ -106,7 +107,21 @@ def routing(pathname,country_opt):
     # else:
     #     rv = make_main({'layout': {'title': 'empty plot: click on a Bar or Scatter link'}})
 
-    return rv,'health'#,country_opt[0]['value']
+    js_script = '''
+                fix_input();
+                function fix_input(){
+                var x = document.getElementsByTagName('input');
+                var i;
+                for (i = 0; i < x.length; i++) {
+                  x[i].setAttribute('autocomplete', 'off');
+                }
+                //console.log("Complete");
+                
+                //alert('hello');
+                }
+                '''
+
+    return rv,'health',js_script#,country_opt[0]['value']
 
 # @server.route("/")
 # def MyDashApp():

@@ -3,6 +3,7 @@ dash-core-components
 dash-html-components
 dash-bootstrap-components
 dash-renderer
+visdcc
 numpy
 gunicorn>=19.7.1
 pandas

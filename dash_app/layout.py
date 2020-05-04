@@ -4,6 +4,7 @@ import dash_bootstrap_components as dbc
 from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style
 import plotly.graph_objects as go
 import dash_table
+import visdcc
 
 
 def app_layout(header=None, main=None, footer=None):
@@ -383,6 +384,7 @@ def make_footer():
 
 
             html.P(''),
+            visdcc.Run_js(id = 'javascript'),
         ]
     )
     return rv
