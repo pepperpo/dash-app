@@ -50,6 +50,15 @@ if platform == "darwin":
 else:
     data_dir = os.path.normpath("/var/lib/dash/data")
 
+    app.scripts.config.serve_locally = False
+    app.scripts.append_script({
+    'external_url': 'https://www.googletagmanager.com/gtag/js?id=UA-35624302-3'
+    })
+    app.scripts.append_script({
+    'external_url': 'https://raw.githubusercontent.com/pepperpo/dash-app/mobility/dash_app/gtag.js'
+    })
+
+
 #counter = 0
 all_data_dict = {}
 filesize_dict = {}
