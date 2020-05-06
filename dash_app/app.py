@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 logger.setLevel(logging.DEBUG)
 
-debug_flag = True
+debug_flag = False
 
 server = Flask(__name__)
 
