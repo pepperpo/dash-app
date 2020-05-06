@@ -45,10 +45,14 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
             if cur_row['Tab']=='response':
                 if col_in == 'StringencyIndex':
                     stFlag = True
+                    col_in_mod = 'StringencyIndexForDisplay'
+                else:
+                    col_in_mod = col_in
+
                 df = data_dict['Response_Oxford']['df']
                 cur_idx = df['CountryName'] == cur_area
                 df = df.loc[cur_idx]
-                plot_df(df, fig, 'cum', col_in, None, 'lin', legend,True)
+                plot_df(df, fig, 'cum', col_in_mod, None, 'lin', legend,True)
                 #messages.extend([html.Div('Testing2')])
 
             if cur_row['Tab'] == 'mobility - google':
@@ -90,6 +94,10 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
         messages.extend(cur_msg)
 
     if stFlag:
+        cur_msg = [html.Div(
+            'StringencyIndex is StringencyIndexForDisplay in original data')]
+        messages.extend(cur_msg)
+
         annotations = [
             dict(
                 x=0.01,
