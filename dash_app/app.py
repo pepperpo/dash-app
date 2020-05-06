@@ -18,7 +18,7 @@ import os
 import time
 from datetime import datetime
 
-from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style
+from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style,default_at_style,default_area_style
 
 
 import sys
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 logger.setLevel(logging.DEBUG)
 
-debug_flag = False
+debug_flag = True
 
 server = Flask(__name__)
 
@@ -46,7 +46,7 @@ app.layout = app_layout(header=make_header(),main=make_main(),footer=make_footer
 
 # Start new thread to check if files changed and save them
 if platform == "darwin":
-    data_dir = os.path.join('Data','COVID-MAC')
+    data_dir = os.path.join('..','data','COVID-MAC')
 else:
     data_dir = os.path.normpath("/var/lib/dash/data")
 
@@ -150,43 +150,90 @@ def update_plot(n_clicks,sel_reg_dropdown,aggr_in,log_in):
 
 @app.callback([Output('area_dropdown', 'options'),
                Output('area_dropdown', 'value'),
-               Output('loading-submit-cnt2','children')],
+               Output('loading-submit-cnt2','children'),
+               Output('area_dropdown', 'disabled'),
+               Output('columns_dropdown', 'disabled')],
                [Input('area_type_dropdown', 'value')],
                [State('country_dropdown', 'value'),
-                State('tabs', 'value')])
-def load_data_callback(area_type,country_in,tabs):
+                State('tabs', 'value'),
+                State('tabs_mob', 'value')])
+def load_data_callback(area_type,country_in,tabs,tabs_mob):
     area_drp = []
+    area_val = []
+    disabled_area = True
+    disabled_col = False
     if country_in:
-        if tabs == 'health' and len(country_in) == 1 and country_in[0] in all_data_dict and area_type:
-            area_drp = data2dropdown(country_in[0], area_type, all_data_dict)
-    return area_drp,[], 'done'
+        if tabs == 'health' and len(country_in) == 1 and country_in[0] in all_data_dict:
+            if area_type:
+                if area_type == 'Country':
+                    area_drp = [{'label':country_in[0], 'value':country_in[0]}]
+                    area_val = country_in
+                else:
+                    area_drp = data2dropdown(country_in[0], area_type, all_data_dict)
+                    disabled_area = False
+            else:
+                disabled_col = True
+
+        if tabs == 'mobility':
+            if tabs_mob == 'google' and 'Mobility_Google' in all_data_dict \
+                    and len(country_in) == 1 and country_in[0] in all_data_dict['Mobility_Google']['options'] \
+                    and area_type and len(area_type) == 1:
+                area_list = all_data_dict['Mobility_Google']['options'][country_in[0]][area_type[0]]
+                if area_list:
+                    disabled_area = False
+                    area_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_list]
+
+    return area_drp,area_val, 'done',disabled_area,disabled_col
 
 
 @app.callback([Output('area_type_dropdown', 'options'),
                Output('area_type_dropdown', 'value'),
                Output('area_type_dropdown', 'disabled'),
-               Output('area_dropdown', 'disabled'),
                Output('area_type_dropdown', 'placeholder'),
-               Output('area_dropdown', 'placeholder')],
+               Output('area_dropdown', 'placeholder'),
+               Output('area_type_dropdown', 'multi')],
                [Input('country_dropdown', 'value')],
-              [State('tabs', 'value')])
-def show_area_type_drp(country_in,tabs):
+              [State('tabs', 'value'),
+               State('tabs_mob', 'value')])
+def show_area_type_drp(country_in,tabs,tabs_mob):
     disabled_type = True
-    disabled_area = True
+    #disabled_area = True
     placeholder_type = ''
     placeholder_area = ''
+    multi_at_drop = False
     area_type = []
+
     if country_in:
         if tabs=='health' and len(country_in)==1:
             disabled_type = False
-            disabled_area = False
+            #disabled_area = False
             placeholder_type = 'Area type'
             placeholder_area = 'Area'
-        if tabs=='health' and len(country_in)==1 and country_in[0] in all_data_dict:
-            area_type_list = all_data_dict[country_in[0]].keys()
-            area_type = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_type_list]
+            if country_in[0] in all_data_dict:
+                area_type_list = all_data_dict[country_in[0]].keys()
+                area_type = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_type_list]
 
-    return area_type,None,disabled_type,disabled_area,placeholder_type,placeholder_area
+        if tabs=='mobility':
+            if tabs_mob=='google' and 'Mobility_Google' in all_data_dict \
+                    and len(country_in)==1 and country_in[0] in all_data_dict['Mobility_Google']['options']:
+                disabled_type = False
+                multi_at_drop = True
+                placeholder_type = 'Sub-region 1 (multiple allowed)'
+                placeholder_area = 'Sub-region 2 (multiple allowed)'
+                area_type_list = all_data_dict['Mobility_Google']['options'][country_in[0]].keys()
+                if area_type_list:
+                    area_type = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_type_list]
+
+            if tabs_mob=='apple' and 'Mobility_Apple' in all_data_dict \
+                    and country_in in all_data_dict['Mobility_Apple']['options']:
+                disabled_type = False
+                multi_at_drop = True
+                placeholder_type = 'Region'
+                area_type_list = all_data_dict['Mobility_Apple']['options'][country_in].keys()
+                if area_type_list:
+                    area_type = [{'label': cur_opt, 'value': cur_opt} for cur_opt in area_type_list]
+
+    return area_type,None,disabled_type,placeholder_type,placeholder_area,multi_at_drop
 
 
 
@@ -194,17 +241,25 @@ def show_area_type_drp(country_in,tabs):
                Output('norm_dropdown', 'options'),
                Output('columns_dropdown', 'value'),
                Output('norm_dropdown', 'value'),
+               Output('prev-tab', 'data'),
                ],
                [Input('area_type_dropdown', 'value')],
               [State('country_dropdown', 'value'),
-               State('tabs', 'value')]
+               State('tabs', 'value'),
+               State('tabs_mob', 'value'),
+               State('prev-tab', 'data'),
+               State('columns_dropdown', 'options'),
+               State('columns_dropdown', 'value')
+               ]
               )
-def update_col_options(area_type,country_in,tabs):
+def update_col_options(area_type,country_in,tabs,tabs_mob,prev_tab,col_opt,col_val):
 
     col_drp = []
     norm_drp = []
     new_col_val = None
     new_norm_val = None
+
+    data = {'tab1':tabs,'tab2':tabs_mob}
 
     if tabs=='health' and country_in:
         if len(country_in) == 1:
@@ -220,7 +275,30 @@ def update_col_options(area_type,country_in,tabs):
         cols = all_data_dict['Response_Oxford']['col_names']
         col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in cols]
 
-    return col_drp,norm_drp,new_col_val,new_norm_val
+    if tabs == 'mobility':
+        if tabs_mob == 'google' and 'Mobility_Google' in all_data_dict:
+            if prev_tab != data:
+                cols = all_data_dict['Mobility_Google']['col_names']
+                col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in cols]
+            else:
+                col_drp = col_opt
+                new_col_val = col_val
+
+        if tabs_mob == 'apple' and 'Mobility_Apple' in all_data_dict \
+                and country_in in all_data_dict['Mobility_Apple']['options'] \
+                and area_type:
+            cur_area_set = set()
+            for cur_at in area_type:
+                cur_area_list = all_data_dict['Mobility_Apple']['options'][country_in][cur_at]
+                for cur_at in cur_area_list:
+                    cur_area_set.add(cur_at)
+            if cur_area_set:
+                disabled_area = False
+                col_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in cur_area_set]
+                if col_val and cur_area_set.issuperset(col_val):
+                    new_col_val = col_val
+
+    return col_drp,norm_drp,new_col_val,new_norm_val,data
 
 
 
@@ -237,7 +315,7 @@ def update_col_options(area_type,country_in,tabs):
                 ])
 def add_region(n_clicks,area_type_st,area_st,table_st,country_in,tabs,tabs_mob,columns_dropdown,norm_dropdown):
 
-    if n_clicks == 0 or not columns_dropdown:
+    if n_clicks == 0 or not columns_dropdown or not (area_type_st or area_st or country_in):
         raise PreventUpdate
 
     if not table_st:
@@ -258,24 +336,20 @@ def add_region(n_clicks,area_type_st,area_st,table_st,country_in,tabs,tabs_mob,c
                 for cur_col in columns_dropdown:
                     new_row = {'Tab': tabs_str,
                                'Data': country_in[0],
-                               'Area': cur_area,
-                               'Area type': area_type_st,
+                               'Field 2': cur_area,
+                               'Field 1': area_type_st,
                                'Variable':cur_col,
-                               'Denominator':norm_dropdown}#,
-                               #'Lin/Log':log_radio,
-                               #'Var/Cum':aggragation_radio}
+                               'Denominator':norm_dropdown}
                     new_rows.append(new_row)
         else:
             for cur_area in country_in:
                 for cur_col in columns_dropdown:
                     new_row = {'Tab': tabs_str,
                                'Data': cur_area,
-                               'Area': cur_area,
-                               'Area type': 'Country',
+                               'Field 2': cur_area,
+                               'Field 1': 'Country',
                                'Variable':cur_col,
-                               'Denominator':norm_dropdown}#,
-                               #'Lin/Log':log_radio,
-                               #'Var/Cum':aggragation_radio}
+                               'Denominator':norm_dropdown}
                     new_rows.append(new_row)
 
     elif tabs == 'response':
@@ -283,13 +357,58 @@ def add_region(n_clicks,area_type_st,area_st,table_st,country_in,tabs,tabs_mob,c
             for cur_col in columns_dropdown:
                 new_row = {'Tab': tabs_str,
                            'Data': cur_area,
-                           'Area': cur_area,
-                           'Area type': 'Country',
+                           'Field 2': cur_area,
+                           'Field 1': 'Country',
                            'Variable':cur_col,
-                           'Denominator':norm_dropdown}#,
-                           #'Lin/Log':log_radio,
-                           #'Var/Cum':aggragation_radio}
+                           'Denominator':norm_dropdown}
                 new_rows.append(new_row)
+
+    elif tabs == 'mobility':
+        if tabs_mob == 'google':
+            if area_st:
+                for cur_area in area_st:
+                    for cur_col in columns_dropdown:
+                        new_row = {'Tab': tabs_str,
+                                   'Data': country_in[0],
+                                   'Field 2': cur_area,
+                                   'Field 1': area_type_st[0],
+                                   'Variable': cur_col,
+                                   'Denominator': norm_dropdown}
+                        new_rows.append(new_row)
+            elif area_type_st:
+                for cur_area in area_type_st:
+                    for cur_col in columns_dropdown:
+                        new_row = {'Tab': tabs_str,
+                                   'Data': country_in[0],
+                                   'Field 2': '',
+                                   'Field 1': cur_area,
+                                   'Variable': cur_col,
+                                   'Denominator': norm_dropdown}
+                        new_rows.append(new_row)
+
+            elif country_in:
+                for cur_area in country_in:
+                    for cur_col in columns_dropdown:
+                        new_row = {'Tab': tabs_str,
+                                   'Data': cur_area,
+                                   'Field 2': '',
+                                   'Field 1': '',
+                                   'Variable': cur_col,
+                                   'Denominator': norm_dropdown}
+                        new_rows.append(new_row)
+
+        if tabs_mob == 'apple':
+            if area_type_st:
+                for cur_area in area_type_st:
+                    for cur_col in columns_dropdown:
+                        if cur_col in all_data_dict['Mobility_Apple']['options'][country_in][cur_area]:
+                            new_row = {'Tab': tabs_str,
+                                       'Data': country_in,
+                                       'Field 2': '',
+                                       'Field 1': cur_area,
+                                       'Variable': cur_col,
+                                       'Denominator': norm_dropdown}
+                            new_rows.append(new_row)
 
 
     for cur_i,cur_row2 in enumerate(table_st):
@@ -303,7 +422,7 @@ def add_region(n_clicks,area_type_st,area_st,table_st,country_in,tabs,tabs_mob,c
                 break
         if exist_flag==False:
             cur_row1['Legend']=len(table_st)+1
-            cur_row1['Visible (on/off)'] = 'on'
+            #cur_row1['Visible (on/off)'] = 'on'
             table_st.append(cur_row1)
 
     return table_st
@@ -327,10 +446,13 @@ def tab1_render(tab):
                Output('country_dropdown', 'placeholder'),
                Output('country_dropdown', 'value'),
                Output('columns_div_id', 'style'),
-               Output('norm_div_id', 'style')
+               Output('norm_div_id', 'style'),
+               Output('area_type_drp_div', 'style'),
+               Output('area_drp_div', 'style'),
                ],
-              [Input('tabs', 'value')])
-def update_content(tab):
+              [Input('tabs', 'value'),
+               Input('tabs_mob', 'value')])
+def update_content(tab,tabs_mob):
     #global counter
     #app.server.logger.info(counter)
 
@@ -341,11 +463,28 @@ def update_content(tab):
     style_area = default_style_area.copy()
     column_style = default_column_style.copy()
     norm_style = default_norm_style.copy()
+    at_style = default_at_style.copy()
+    area_style = default_area_style.copy()
 
     placeholder='Select countries (multiple allowed)'
 
     if tab == 'mobility':
-        pass
+        column_style['width'] = '100%'
+        norm_style = {'display': 'none'}
+        at_style['width'] = '50%'
+        area_style['width'] = '49%'
+
+        if tabs_mob == 'google' and 'Mobility_Google' in all_data_dict:
+            multi = True
+            countries = all_data_dict['Mobility_Google']['options'].keys()
+            countries_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in countries]
+
+        if tabs_mob == 'apple' and 'Mobility_Apple' in all_data_dict:
+            multi = False
+            geo_types = all_data_dict['Mobility_Apple']['options'].keys()
+            countries_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in geo_types]
+            placeholder = 'Geo type'
+
     elif tab == 'health':
         multi = True
         if 'Response_Oxford' in all_data_dict:
@@ -363,7 +502,7 @@ def update_content(tab):
             countries_drp = [{'label': cur_opt, 'value': cur_opt} for cur_opt in countries]
 
     #counter+=1
-    return countries_drp,multi,style_country,style_area,placeholder,None,column_style,norm_style
+    return countries_drp,multi,style_country,style_area,placeholder,None,column_style,norm_style,at_style,area_style
 
 
 @app.callback([Output('aggragation_radio', 'value'),

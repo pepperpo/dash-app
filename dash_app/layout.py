@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style
+from style import colors,default_style_country,default_style_area,default_column_style,default_norm_style,default_at_style,default_area_style
 import plotly.graph_objects as go
 import dash_table
 import visdcc
@@ -18,6 +18,7 @@ def app_layout(header=None, main=None, footer=None):
         children=[
             dcc.Location(id='url', refresh=False),
             dcc.Store(id='dash-session', storage_type='memory'),
+            dcc.Store(id='prev-tab', storage_type='memory'),
             html.Div(id='page-content',
                 className = 'container-fluid',
                 children=[
@@ -78,7 +79,8 @@ def make_control_panel():
         ])
 
     area_type_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '20%', 'float':'left'},
+        id='area_type_drp_div',
+        style=default_at_style,
         children=[
             dcc.Dropdown(
                 id='area_type_dropdown',
@@ -88,7 +90,8 @@ def make_control_panel():
         ])
 
     area_drp_div = html.Div(
-        style={'backgroundColor': colors['background'], 'width': '79%', 'float':'left','margin-left':'1%'},
+        id='area_drp_div',
+        style=default_area_style,
         children=[
             dcc.Dropdown(
                 id='area_dropdown',
@@ -298,7 +301,7 @@ def make_control_panel():
             children=[
             dcc.Tab(label='Health stats', value='health',style=tab_style, selected_style=tab_selected_style),
             dcc.Tab(label='Government response', value='response',style=tab_style, selected_style=tab_selected_style),
-            dcc.Tab(label='Mobility', value='mobility',style=tab_style, selected_style=tab_selected_style,disabled=True),
+            dcc.Tab(label='Mobility', value='mobility',style=tab_style, selected_style=tab_selected_style),#,disabled=True),
         ],style=tabs_styles)
     ])
 

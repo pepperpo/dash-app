@@ -20,16 +20,19 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
 
     messages = []
 
+    appleFlag = False
     stFlag = False
     for cur_row in sel_reg_dropdown:
-        cur_area = cur_row['Area']
+        cur_area = cur_row['Field 2']
         norm_in = cur_row['Denominator']
         col_in = cur_row['Variable']
         legend = cur_row['Legend']
-        is_visible = cur_row['Visible (on/off)']
+        is_visible = 'on'#cur_row['Visible (on/off)']
+        country_in = cur_row['Data']
+        field_1 = cur_row['Field 1']
         if is_visible == 'on':
             if cur_row['Tab']=='health':
-                dash_session = data_dict[cur_row['Data']][cur_row['Area type']]
+                dash_session = data_dict[country_in][field_1]
                 df = pd.DataFrame(dash_session['data'])
                 if dash_session['loc']:
                     cur_idx = df[dash_session['loc']] == cur_area
@@ -47,6 +50,44 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
                 df = df.loc[cur_idx]
                 plot_df(df, fig, 'cum', col_in, None, 'lin', legend,True)
                 #messages.extend([html.Div('Testing2')])
+
+            if cur_row['Tab'] == 'mobility - google':
+                df = data_dict['Mobility_Google']['data']
+                cur_idx=None
+                if cur_area:
+                    cur_idx = (df['country_region'] == country_in) & (df['sub_region_1'] == field_1) & (
+                            df['sub_region_2'] == cur_area)
+                elif field_1:
+                    cur_idx = (df['country_region'] == country_in) & (df['sub_region_1'] == field_1) & (
+                        pd.isnull(df['sub_region_2']))
+
+                elif country_in:
+                    cur_idx = (df['country_region'] == country_in) & (pd.isnull(df['sub_region_1'])) & (
+                        pd.isnull(df['sub_region_2']))
+
+                df = df.loc[cur_idx]
+                plot_df(df, fig, 'cum', col_in, None, 'lin', legend, True)
+
+            if cur_row['Tab'] == 'mobility - apple':
+                df = data_dict['Mobility_Apple']['data']
+                cur_idx = (df['geo_type'] == country_in) & (df['region'] == field_1) & (
+                            df['transportation_type'] == col_in)
+
+                if cur_idx.any():
+                    df = df.loc[cur_idx].copy()
+                    df = df.iloc[:, 4:].T
+                    df.reset_index(inplace=True)
+                    col_idx = df.columns.tolist()
+                    col_idx.remove('index')
+                    df.rename(columns={col_idx[0]: col_in, 'index': 'date'}, inplace=True)
+                    df['date'] = pd.to_datetime(df['date'])
+                    df[col_in] = df[col_in]-100.
+                    plot_df(df, fig, 'cum', col_in, None, 'lin', legend, True)
+                    appleFlag = True
+
+    if appleFlag:
+        cur_msg = [html.Div('Apple mobility traces are modified so that baseline is at 0% (in original data baseline is at 100%)')]
+        messages.extend(cur_msg)
 
     if stFlag:
         annotations = [
@@ -73,7 +114,7 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
         log_in = 'linear'
 
     #hovermode='x unified',
-    fig.update_layout(yaxis_type=log_in,margin={'t': 40},legend_orientation="h",showlegend=True,legend_title_text='Legend: ',annotations=annotations)
+    fig.update_layout(yaxis_type=log_in,margin={'t': 40},legend_orientation="h",showlegend=True,legend_title_text='Legend (click on a marker to hide trace): ',annotations=annotations)
 
     return fig,messages
 
@@ -81,14 +122,12 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
 def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
     date = df['date'].dt.date
 
+    denom = None
     if norm_in:
         if aggr_in == 'cum':
             denom = df[norm_in]
         else:
             denom = df[norm_in].diff()  # np.concatenate([[1], df[norm_in].diff()])
-    else:
-        denom = 1.
-
 
     if aggr_in == 'cum':
         numer = df[cur_col]
@@ -96,8 +135,10 @@ def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
         numer = df[cur_col].diff()  # np.concatenate([[0],df[cur_col].diff()])
 
     # fig_data.append(go.Bar(name=cur_col, x=date, y=numer/denom))
-
-    y_val = numer / denom
+    if denom:
+        y_val = numer / denom
+    else:
+        y_val = numer
 
     cur_msg = []
     if not (np.any(y_val < 0) and log_in == 'log'):
@@ -116,25 +157,61 @@ def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
 def load_data(all_data_dict,filesize_dict,app):
 
     from datetime import timedelta
-    from constants import translation_dict
+    from constants import translation_dict,google_dtype
     import numpy as np
 
     fs_key = 'Mobility_Apple'
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
         app.server.logger.info('Refreshing {}'.format(fs_key))
-        cur_df = pd.read_csv(
+        #app.server.logger.info('{}'.format(filesize_dict[fs_key]['f_path']))
+        apple_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0)
-        all_data_dict[fs_key] = cur_df
+
+        geo_type_list = apple_df['geo_type'].unique().tolist()
+        region_dict = {}
+        for cur_geo in geo_type_list:
+            cur_idx = apple_df['geo_type'] == cur_geo
+            cur_df = apple_df.loc[cur_idx]
+            region_list = cur_df['region'].unique().tolist()
+            transportation_type = {}
+            for cur_reg in region_list:
+                cur_idx2 = cur_df['region'] == cur_reg
+                cur_df2 = cur_df.loc[cur_idx2]
+                transport_list = cur_df2['transportation_type'].unique().tolist()
+                transportation_type[cur_reg] = transport_list
+            region_dict[cur_geo] = transportation_type
+
+        all_data_dict[fs_key] = {'options':region_dict,'data':apple_df}
         filesize_dict[fs_key]['is_new'] = False
+
 
     fs_key = 'Mobility_Google'
     if filesize_dict[fs_key]['is_new'] or not all_data_dict:
         app.server.logger.info('Refreshing {}'.format(fs_key))
-        cur_df = pd.read_csv(
+        google_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
-            header=0,dtype={'sub_region_2':str})
-        all_data_dict[fs_key] = cur_df
+            header=0,dtype=google_dtype,converters={'date':pd.to_datetime},keep_default_na=True)
+
+        g_countries_l = google_df['country_region'].unique().tolist()
+        g_options = {}
+        for cur_country in g_countries_l:
+            cur_idx = google_df['country_region'] == cur_country
+            g_country_df = google_df.loc[cur_idx]
+            g_sr1_l = g_country_df['sub_region_1'].unique().tolist()
+            g_sr1_l = [x for x in g_sr1_l if not pd.isnull(x)]
+            cur_dict = {}
+            for cur_sr1 in g_sr1_l:
+                cur_idx2 = g_country_df['sub_region_1'] == cur_sr1
+                sr1_df = g_country_df.loc[cur_idx2]
+                g_sr2_l = sr1_df['sub_region_2'].unique().tolist()
+                g_sr2_l = [x for x in g_sr2_l if not pd.isnull(x)]
+                cur_dict[cur_sr1] = g_sr2_l
+            g_options[cur_country] = cur_dict
+
+        col_names = google_df.columns.tolist()[5:]
+        all_data_dict[fs_key] = {'options':g_options,'data':google_df,'col_names':col_names}
+
         filesize_dict[fs_key]['is_new'] = False
 
     fs_key = 'Response_Oxford'
@@ -175,7 +252,6 @@ def load_data(all_data_dict,filesize_dict,app):
 
         all_data_dict[fs_key] = {'df':cur_df,'countries':countries,'col_names':col_names}
         filesize_dict[fs_key]['is_new'] = False
-
 
 
     countries = all_data_dict['Response_Oxford']['countries']
@@ -232,6 +308,7 @@ def load_data(all_data_dict,filesize_dict,app):
             all_data_dict[country_in] = data
 
 
+
 def save_data(data_dir,filesize_dict,app,reload_flag=True):
     from constants import urls
     import requests
@@ -244,9 +321,19 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
 
             if key2=='Apple':
                 #https://towardsdatascience.com/empowering-apple-mobility-trends-reports-with-bigquery-and-data-studio-1b188ab1c612
-                response = requests.head(value2, allow_redirects=True)
-                if response.status_code==200:
-                    r_apple = requests.get(value2)
+
+                loop_flag = True
+                ver_num = 0
+                while loop_flag:
+                    response = requests.head(value2.format('v{}'.format(ver_num+1)), allow_redirects=True)
+                    if response.status_code == 200:
+                        ver_num += 1
+                    else:
+                        loop_flag = False
+
+                if ver_num > 0:
+                    app.server.logger.info('Apple version: {}'.format(ver_num))
+                    r_apple = requests.get(value2.format('v{}'.format(ver_num)))
                     d_apple = json.loads(r_apple.text)
                     url_name = 'https://covid19-static.cdn-apple.com{}{}'.format(d_apple['basePath'],d_apple['regions']['en-us']['csvPath'])
                 else:
