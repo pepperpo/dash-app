@@ -52,10 +52,10 @@ else:
 
     app.scripts.config.serve_locally = False
     app.scripts.append_script({
-    'external_url': 'https://www.googletagmanager.com/gtag/js?id=UA-35624302-3'
+        'external_url': 'https://www.googletagmanager.com/gtag/js?id=UA-35624302-3'
     })
     app.scripts.append_script({
-    'external_url': 'https://raw.githubusercontent.com/pepperpo/dash-app/mobility/dash_app/gtag.js'
+        'external_url': 'https://raw.githubusercontent.com/pepperpo/dash-app/mobility/dash_app/gtag.js'
     })
 
 
