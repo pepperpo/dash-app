@@ -354,6 +354,7 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                 response = requests.head(url_name, allow_redirects=True)
                 size = response.headers.get('content-length', 0)
                 status_code = response.status_code
+                app.server.logger.info('Size head: {}'.format(size))
 
                 #print(key2,status_code,size)
                 url_path = urlparse(url_name).path
