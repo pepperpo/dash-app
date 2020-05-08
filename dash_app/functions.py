@@ -367,6 +367,7 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                 if status_code==200 and reload_flag:
                     app.server.logger.info('Downloading {}'.format(fname))
                     myFile = requests.get(url_name)
+                    app.server.logger.info('Size: {}'.format(len(myFile.content)))
                     open(file_path, 'wb').write(myFile.content)
 
 
