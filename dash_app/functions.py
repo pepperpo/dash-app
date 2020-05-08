@@ -5,6 +5,7 @@ import json
 import time
 import dash_html_components as html
 from plotly.subplots import make_subplots
+import urllib.request
 import plotly.express as px
 
 def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
@@ -369,9 +370,11 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                     app.server.logger.info('Downloading {}'.format(fname))
                     app.server.logger.info(url_name)
 
-                    myFile = requests.get(url_name,headers={'Cache-Control': 'no-cache'})
-                    app.server.logger.info('Size: {}'.format(len(myFile.content)))
-                    open(file_path, 'wb').write(myFile.content)
+                    urllib.request.urlretrieve(url_name, file_path)
+
+                    #myFile = requests.get(url_name)#,headers={'Cache-Control': 'no-cache'})
+                    #app.server.logger.info('Size: {}'.format(len(myFile.content)))
+                    #open(file_path, 'wb').write(myFile.content)
 
                     # response = requests.get(url_name, stream=True)
                     # handle = open(file_path, "wb")

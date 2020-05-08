@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 logger.setLevel(logging.DEBUG)
 
-debug_flag = True
+debug_flag = False
 
 server = Flask(__name__)
 
@@ -97,7 +97,7 @@ def routing(pathname,country_opt):
 
     rv = make_main()
 
-    #save_data(data_dir, filesize_dict,app,False)
+    #save_data(data_dir, filesize_dict,app,True)
     #load_data(all_data_dict, filesize_dict,app)
 
     # if pathname == '/bar':
