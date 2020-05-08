@@ -61,7 +61,7 @@ def get_new_data_every(period=UPDADE_INTERVAL):
     """Update the data every 'period' seconds"""
     while True:
         now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
+        current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
         app.server.logger.info("Attempting to refresh data at: {}".format(current_time))
 
         save_data(data_dir, filesize_dict,app)
