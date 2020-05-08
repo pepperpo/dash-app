@@ -377,6 +377,7 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                     for chunk in response.iter_content(chunk_size=512):
                         if chunk:  # filter out keep-alive new chunks
                             handle.write(chunk)
+                            handle.write(chunk)
 
 
 
