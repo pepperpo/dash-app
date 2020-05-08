@@ -367,9 +367,16 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                 filesize_dict[fname] = {'size': size, 'is_new': True, 'f_path': file_path}
                 if status_code==200 and reload_flag:
                     app.server.logger.info('Downloading {}'.format(fname))
-                    myFile = requests.get(url_name)
-                    app.server.logger.info('Size: {}'.format(len(myFile.content)))
-                    open(file_path, 'wb').write(myFile.content)
+
+                    #myFile = requests.get(url_name)
+                    #app.server.logger.info('Size: {}'.format(len(myFile.content)))
+                    #open(file_path, 'wb').write(myFile.content)
+
+                    response = requests.get(url_name, stream=True)
+                    handle = open(file_path, "wb")
+                    for chunk in response.iter_content(chunk_size=512):
+                        if chunk:  # filter out keep-alive new chunks
+                            handle.write(chunk)
 
 
 
