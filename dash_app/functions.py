@@ -151,7 +151,7 @@ def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
 
     cur_msg = []
     if not (np.any(y_val < 0) and log_in == 'log'):
-        if cur_col=='StringencyIndex':
+        if cur_col=='StringencyIndexForDisplay':
             add_txt = df['text']
         else:
             add_txt = None
@@ -229,7 +229,7 @@ def load_data(all_data_dict,filesize_dict,app):
         cur_df = pd.read_csv(
             filesize_dict[fs_key]['f_path'],
             header=0,converters={'Date':pd.to_datetime})
-        cur_df['Date'] -= timedelta(days=1) #pd.to_datetime(cur_df['Date'])
+        #cur_df['Date'] -= timedelta(days=1) #pd.to_datetime(cur_df['Date'])
         countries = cur_df['CountryName'].unique().tolist()
         col_names_f = cur_df.columns.tolist()[3:-4]
         if 'ConfirmedDeaths' in col_names_f:
@@ -250,7 +250,7 @@ def load_data(all_data_dict,filesize_dict,app):
                     for col_i,cur_col in enumerate(col_names_f):
                         if not(np.isnan(cur_df.loc[index,cur_col]) and np.isnan(cur_df.loc[index-1,cur_col])) and \
                                 cur_df.loc[index,cur_col] != cur_df.loc[index-1,cur_col]:
-                            if col_i%2==0:
+                            if 'Flag' not in cur_col:
                                 new_str = '{}:{}→{}'.format(cur_col,cur_df.loc[index-1,cur_col],cur_df.loc[index,cur_col])
                             else:
                                 new_str = 'Flag of {}:{}→{}'.format(col_names_f[col_i-1], cur_df.loc[index-1, cur_col], cur_df.loc[index, cur_col])
