@@ -12,6 +12,13 @@ services:
     volumes:
       - ./data/COVID-DASH:/var/lib/dash/data
 
+  data_fetcher:
+    container_name: data_fetcher
+    restart: always
+    build: ./data_fetcher
+    command: python main.py
+    volumes:
+      - ./data/COVID-DASH:/var/lib/dash/data
 
   nginx:
     container_name: nginx
