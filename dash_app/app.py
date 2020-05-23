@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(stream=sys.stderr))
 logger.setLevel(logging.DEBUG)
 
-debug_flag = True
+debug_flag = False
 
 server = Flask(__name__)
 
@@ -54,7 +54,7 @@ else:
 all_data_dict = {}
 filesize_dict = {}
 
-'''
+
 # number of seconds between re-calculating the data
 UPDADE_INTERVAL = 600
 def get_new_data_every(period=UPDADE_INTERVAL):
@@ -72,7 +72,7 @@ def get_new_data_every(period=UPDADE_INTERVAL):
 # Run the function in another thread
 executor = ThreadPoolExecutor(max_workers=1)
 executor.submit(get_new_data_every)
-'''
+
 
 out1 = [Output('page-main', 'children'),
                Output('tabs', 'value'),
@@ -97,8 +97,8 @@ def routing(pathname,country_opt):
 
     rv = make_main()
 
-    save_data(data_dir, filesize_dict,app,True)
-    load_data(all_data_dict, filesize_dict,app)
+    #save_data(data_dir, filesize_dict,app,True)
+    #load_data(all_data_dict, filesize_dict,app)
 
     # if pathname == '/bar':
     #     rv = make_main(bar_plot)
