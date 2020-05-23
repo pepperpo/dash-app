@@ -170,7 +170,7 @@ def load_data(all_data_dict,filesize_dict,app):
     import numpy as np
 
     fs_key = 'Mobility_Apple'
-    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+    if fs_key in filesize_dict and filesize_dict[fs_key]['is_new']:
         app.server.logger.info('Refreshing {}'.format(fs_key))
         #app.server.logger.info('{}'.format(filesize_dict[fs_key]['f_path']))
         apple_df = pd.read_csv(
