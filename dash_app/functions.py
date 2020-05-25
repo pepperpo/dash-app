@@ -80,7 +80,7 @@ def generate_plot(data_dict,sel_reg_dropdown,aggr_in,log_in):
 
                 if cur_idx.any():
                     df = df.loc[cur_idx].copy()
-                    df = df.iloc[:, 4:].T
+                    df = df.iloc[:, 6:].T
                     df.reset_index(inplace=True)
                     col_idx = df.columns.tolist()
                     col_idx.remove('index')
@@ -163,20 +163,41 @@ def plot_df(df,fig,aggr_in,cur_col,norm_in,log_in,legend,secondary_y):
 
 
 
-def load_data(all_data_dict,filesize_dict,app):
+def load_data(all_data_dict,data_dir,app):
 
     from datetime import timedelta
     from constants import translation_dict,google_dtype
     import numpy as np
+    import os
 
     fs_key = 'Mobility_Apple'
-    if fs_key in filesize_dict and filesize_dict[fs_key]['is_new']:
+    cur_path = os.path.join(data_dir,'{}.csv'.format(fs_key))
+    if os.path.exists(cur_path):
         app.server.logger.info('Refreshing {}'.format(fs_key))
         #app.server.logger.info('{}'.format(filesize_dict[fs_key]['f_path']))
         apple_df = pd.read_csv(
-            filesize_dict[fs_key]['f_path'],
+            cur_path,
             header=0)
 
+        cur_subreg_nnull_idx = pd.notnull(apple_df['sub-region'])
+        cur_country_nnull_idx = pd.notnull(apple_df['country'])
+
+        apple_df.loc[cur_subreg_nnull_idx & cur_country_nnull_idx, 'region'] = apple_df.loc[
+                                                                                   cur_subreg_nnull_idx & cur_country_nnull_idx, 'region'] + \
+                                                                               ' (' + apple_df.loc[
+                                                                                   cur_subreg_nnull_idx & cur_country_nnull_idx, 'sub-region'] + ',' + \
+                                                                               apple_df.loc[
+                                                                                   cur_subreg_nnull_idx & cur_country_nnull_idx, 'country'] + ')'
+
+        apple_df.loc[cur_subreg_nnull_idx & ~cur_country_nnull_idx, 'region'] = apple_df.loc[
+                                                                                    cur_subreg_nnull_idx & ~cur_country_nnull_idx, 'region'] + \
+                                                                                ' (' + apple_df.loc[
+                                                                                    cur_subreg_nnull_idx & ~cur_country_nnull_idx, 'sub-region'] + ')'
+
+        apple_df.loc[~cur_subreg_nnull_idx & cur_country_nnull_idx, 'region'] = apple_df.loc[
+                                                                                    ~cur_subreg_nnull_idx & cur_country_nnull_idx, 'region'] + \
+                                                                                ' (' + apple_df.loc[
+                                                                                    ~cur_subreg_nnull_idx & cur_country_nnull_idx, 'country'] + ')'
         geo_type_list = apple_df['geo_type'].unique().tolist()
         region_dict = {}
         for cur_geo in geo_type_list:
@@ -192,14 +213,15 @@ def load_data(all_data_dict,filesize_dict,app):
             region_dict[cur_geo] = transportation_type
 
         all_data_dict[fs_key] = {'options':region_dict,'data':apple_df}
-        filesize_dict[fs_key]['is_new'] = False
+        #filesize_dict[fs_key]['is_new'] = False
 
 
     fs_key = 'Mobility_Google'
-    if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+    cur_path = os.path.join(data_dir, '{}.csv'.format(fs_key))
+    if os.path.exists(cur_path):
         app.server.logger.info('Refreshing {}'.format(fs_key))
         google_df = pd.read_csv(
-            filesize_dict[fs_key]['f_path'],
+            cur_path,
             header=0,dtype=google_dtype,converters={'date':pd.to_datetime},keep_default_na=True)
 
         g_countries_l = google_df['country_region'].unique().tolist()
@@ -220,14 +242,14 @@ def load_data(all_data_dict,filesize_dict,app):
 
         col_names = google_df.columns.tolist()[5:]
         all_data_dict[fs_key] = {'options':g_options,'data':google_df,'col_names':col_names}
-
-        filesize_dict[fs_key]['is_new'] = False
+        #filesize_dict[fs_key]['is_new'] = False
 
     fs_key = 'Response_Oxford'
-    if (filesize_dict[fs_key]['is_new'] or not all_data_dict):
+    cur_path = os.path.join(data_dir, '{}.csv'.format(fs_key))
+    if os.path.exists(cur_path):
         app.server.logger.info('Refreshing {}'.format(fs_key))
         cur_df = pd.read_csv(
-            filesize_dict[fs_key]['f_path'],
+            cur_path,
             header=0,converters={'Date':pd.to_datetime})
         #cur_df['Date'] -= timedelta(days=1) #pd.to_datetime(cur_df['Date'])
         countries = cur_df['CountryName'].unique().tolist()
@@ -260,7 +282,7 @@ def load_data(all_data_dict,filesize_dict,app):
         cur_df['text'] = text_col
 
         all_data_dict[fs_key] = {'df':cur_df,'countries':countries,'col_names':col_names}
-        filesize_dict[fs_key]['is_new'] = False
+        #filesize_dict[fs_key]['is_new'] = False
 
 
     countries = all_data_dict['Response_Oxford']['countries']
@@ -271,19 +293,23 @@ def load_data(all_data_dict,filesize_dict,app):
             fs_key = '{}_Nation'.format(country_in)
             fs_key_region = '{}_Region'.format(country_in)
             fs_key_province = '{}_Province'.format(country_in)
-            if filesize_dict[fs_key]['is_new'] or not all_data_dict:
+
+            cur_path = os.path.join(data_dir, '{}.csv'.format(fs_key))
+            cur_path_region = os.path.join(data_dir, '{}.csv'.format(fs_key_region))
+            cur_path_province = os.path.join(data_dir, '{}.csv'.format(fs_key_province))
+            if os.path.exists(cur_path) and os.path.exists(cur_path_region) and os.path.exists(cur_path_province):
                 app.server.logger.info('Refreshing {}'.format(fs_key))
 
                 cur_tr = translation_dict[country_in]
 
                 df_nation = pd.read_csv(
-                    filesize_dict[fs_key]['f_path'],
+                    cur_path,
                     header=0,converters={'data':pd.to_datetime})
                 df_region = pd.read_csv(
-                    filesize_dict[fs_key_region]['f_path'],
+                    cur_path_region,
                     header=0,converters={'data':pd.to_datetime})
                 df_province = pd.read_csv(
-                    filesize_dict[fs_key_province]['f_path'],
+                    cur_path_province,
                     header=0,converters={'data':pd.to_datetime})
 
                 options_nation_region_it = ['ricoverati_con_sintomi','terapia_intensiva','totale_ospedalizzati','isolamento_domiciliare','totale_positivi','dimessi_guariti','deceduti','totale_casi','tamponi','casi_testati']
@@ -305,7 +331,7 @@ def load_data(all_data_dict,filesize_dict,app):
                         'Province': {'data':df_province,'options':options_province,     'norm':[]                   ,'cols':province_list,'loc':'denominazione_provincia'}}
 
                 all_data_dict[country_in] = data
-                filesize_dict[fs_key]['is_new'] = False
+                #filesize_dict[fs_key]['is_new'] = False
         else:
             health_cols = ['date','CountryName','total_cases','deaths']
             health_opts = health_cols[2:]
@@ -318,7 +344,7 @@ def load_data(all_data_dict,filesize_dict,app):
 
 
 
-def save_data(data_dir,filesize_dict,app,reload_flag=True):
+def save_data(data_dir,app,reload_flag=True):
     from constants import urls
     import requests
     import os
@@ -332,45 +358,58 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                 #https://towardsdatascience.com/empowering-apple-mobility-trends-reports-with-bigquery-and-data-studio-1b188ab1c612
 
                 loop_flag = True
-                ver_num = 0
+                found_flag = False
+                ver_num = 2
                 while loop_flag:
-                    response = requests.head(value2.format('v{}'.format(ver_num+1)), allow_redirects=True)
-                    if response.status_code == 200:
-                        ver_num += 1
-                    else:
+                    try:
+                        response = requests.head(value2.format('v{}'.format(ver_num + 1)), allow_redirects=True)
+                        if response.status_code == 200:
+                            ver_num += 1
+                            found_flag = True
+                        else:
+                            loop_flag = False
+                    except:
                         loop_flag = False
 
-                if ver_num > 0:
-                    app.server.logger.info('Apple version: {}'.format(ver_num))
+                if found_flag:
+                    print('Apple version: {}'.format(ver_num))
                     r_apple = requests.get(value2.format('v{}'.format(ver_num)))
                     d_apple = json.loads(r_apple.text)
-                    url_name = 'https://covid19-static.cdn-apple.com{}{}'.format(d_apple['basePath'],d_apple['regions']['en-us']['csvPath'])
+                    url_name = 'https://covid19-static.cdn-apple.com{}{}'.format(d_apple['basePath'],
+                                                                                 d_apple['regions']['en-us']['csvPath'])
                 else:
                     url_name = None
+
             else:
                 url_name = value2
 
+            fname = '{}_{}'.format(key1, key2)
+            load_flag_success = False
             if url_name:
-                fname = '{}_{}'.format(key1,key2)
-                response = requests.head(url_name, allow_redirects=True)
-                size = response.headers.get('content-length', 0)
-                status_code = response.status_code
-                app.server.logger.info('Size head: {}'.format(size))
+                try:
+                    response = requests.head(url_name, allow_redirects=True)
+                    size = response.headers.get('content-length', 0)
+                    status_code = response.status_code
+                    app.server.logger.info('Size head: {}'.format(size))
 
-                #print(key2,status_code,size)
-                url_path = urlparse(url_name).path
-                extension = os.path.splitext(url_path)[1]
-                file_path = os.path.join(data_dir, fname + extension)
+                    #print(key2,status_code,size)
+                    url_path = urlparse(url_name).path
+                    extension = os.path.splitext(url_path)[1]
+                    file_path = os.path.join(data_dir, fname + extension)
 
-                #reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
-                #reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
+                    #reload_flag = (fname not in filesize_dict) or size > filesize_dict[fname]['size'] or not os.path.exists(file_path)
+                    #reload_flag = (fname not in filesize_dict) or not os.path.exists(file_path)
 
-                filesize_dict[fname] = {'size': size, 'is_new': True, 'f_path': file_path}
+                    #filesize_dict[fname] = {'size': size, 'is_new': True, 'f_path': file_path}
+                except:
+                    status_code = 0
+
                 if status_code==200 and reload_flag:
                     app.server.logger.info('Downloading {}'.format(fname))
                     app.server.logger.info(url_name)
 
                     urllib.request.urlretrieve(url_name, file_path)
+                    load_flag_success  = True
 
                     #myFile = requests.get(url_name)#,headers={'Cache-Control': 'no-cache'})
                     #app.server.logger.info('Size: {}'.format(len(myFile.content)))
@@ -382,6 +421,10 @@ def save_data(data_dir,filesize_dict,app,reload_flag=True):
                     #     if chunk:  # filter out keep-alive new chunks
                     #         handle.write(chunk)
 
+            if load_flag_success:
+                app.server.logger.info('Success {}'.format(fname))
+            else:
+                app.server.logger.info('Failed {}'.format(fname))
 
 
 def data2dropdown(country_in,area_type,dict_in):

@@ -52,7 +52,7 @@ else:
 
 #counter = 0
 all_data_dict = {}
-filesize_dict = {}
+#filesize_dict = {}
 
 
 # number of seconds between re-calculating the data
@@ -64,8 +64,8 @@ def get_new_data_every(period=UPDADE_INTERVAL):
         current_time = now.strftime("%m/%d/%Y, %H:%M:%S")
         app.server.logger.info("Attempting to refresh data at: {}".format(current_time))
 
-        save_data(data_dir, filesize_dict,app)
-        load_data(all_data_dict,filesize_dict,app)
+        save_data(data_dir,app)
+        load_data(all_data_dict,data_dir,app)
 
         app.server.logger.info("Done")
         time.sleep(period)
@@ -97,8 +97,8 @@ def routing(pathname,country_opt):
 
     rv = make_main()
 
-    #save_data(data_dir, filesize_dict,app,True)
-    #load_data(all_data_dict, filesize_dict,app)
+    #save_data(data_dir,app,True)
+    #load_data(all_data_dict, data_dir,app)
 
     # if pathname == '/bar':
     #     rv = make_main(bar_plot)
